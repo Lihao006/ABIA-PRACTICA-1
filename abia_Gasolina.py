@@ -93,23 +93,7 @@ class Distribucion(object):
         """
         self.cx = cx
         self.cy = cy
-        self.camiones = Camion(capacidad_maxima)
-
-class Camion(object):
-
-    """
-    No necesitamos la ubi del camión, porque será alguna del Centro de Distribución o de las gasolineras
-    """
-    def __init__(self, capacidad: int):
-        self.capacidad = capacidad
-        self.num_viajes = 0
-        self.km_recorridos = 0
-        self.asignaciones = []  # Lista de gasolineras asignadas en el viaje actual
-        # hemos pensado de asignarle las peticiones en lugar de las gasolineras, pero no vemos ningún beneficio por
-        # llenar 1 sólo depósito de la gasolinera cuando tiene 2 peticiones. Por tanto, asumimos que
-        # cada vez que el camión visita una gasolinera, le sirve todas las peticiones pendientes.
         
-
 
 
 class CentrosDistribucion(object):
@@ -135,13 +119,27 @@ class CentrosDistribucion(object):
             for _ in range(multiplicidad):
                 self.centros.append(centro)
 
+class Camion(object):
+
+    """
+    No necesitamos la ubi del camión, porque será alguna del Centro de Distribución o de las gasolineras
+    """
+    def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras, capacidad: int):
+        self.ubicacion = (centros.centros[0].cx, centros.centros[0].cy)
+        self.capacidad = capacidad
+        self.num_viajes = 0
+        self.km_recorridos = 0
+        self.asignaciones = []  # Lista de gasolineras asignadas en el viaje actual
+        # hemos pensado de asignarle las peticiones en lugar de las gasolineras, pero no vemos ningún beneficio por
+        # llenar 1 sólo depósito de la gasolinera cuando tiene 2 peticiones. Por tanto, asumimos que
+        # cada vez que el camión visita una gasolinera, le sirve todas las peticiones pendientes.s
 
 
 class Problema(object):
     def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras):
         self.centros = centros
         self.gasolineras = gasolineras
-        self.camiones = centros.centros[0].cx, centros.centros[0].cy
+        self.camiones = Camion(centros, gasolineras, capacidad_maxima)
         self.distancia_total = 0
         self.beneficio_total = 0
 
