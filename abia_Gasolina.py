@@ -12,6 +12,7 @@ valor_deposito = 1000
 coste_km = 2
 capacidad_maxima = 2
 
+# no utilizar el deepcopy
 
 class Gasolinera(object):
     """
@@ -102,7 +103,13 @@ class Camion(object):
         self.capacidad = capacidad
         self.num_viajes = 0
         self.km_recorridos = 0
+        self.asignaciones = []  # Lista de gasolineras asignadas en el viaje actual
+        # hemos pensado de asiganarle las peticiones en lugar de las gasolineras, pero no vemos ningún beneficio por
+        # llenar 1 sólo depósito de la gasolinera cuando tiene 2 peticiones. Por tanto, asumimos que
+        # cada vez que el camión visita una gasolinera, le sirve todas las peticiones pendientes.
         
+
+
 
 class CentrosDistribucion(object):
     """
@@ -129,7 +136,7 @@ class CentrosDistribucion(object):
 
 
 
-class Problema(object):
+class Problema(Problem):
     def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras):
         self.centros = centros
         self.gasolineras = gasolineras
@@ -138,6 +145,7 @@ class Problema(object):
         self.beneficio_total = 0
 
         self.pet_pendientes = []
+        
 
 
 
