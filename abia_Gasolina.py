@@ -146,6 +146,11 @@ class Problema(object):
         self.beneficio_total = 0
 
         self.pet_pendientes = []
+
+        
+
+    
+    def calcula_coste_dist(self, ):
         
 
 
