@@ -1,6 +1,6 @@
 import random
 from typing import List
-from aima.search import Problem, hill_climbing, simulated_annealing
+# from aima.search import Problem, hill_climbing, simulated_annealing
 
 DISTRIBUCION_PETICIONES = [0.05, 0.65, 0.25, 0.05]
 DISTRIBUCION_DIAS = [0.60, 0.20, 0.15, 0.05]
@@ -93,6 +93,7 @@ class Distribucion(object):
         """
         self.cx = cx
         self.cy = cy
+        self.camiones = Camion(capacidad_maxima)
 
 class Camion(object):
 
@@ -104,10 +105,10 @@ class Camion(object):
         self.num_viajes = 0
         self.km_recorridos = 0
         self.asignaciones = []  # Lista de gasolineras asignadas en el viaje actual
-        # hemos pensado de asiganarle las peticiones en lugar de las gasolineras, pero no vemos ningún beneficio por
+        # hemos pensado de asignarle las peticiones en lugar de las gasolineras, pero no vemos ningún beneficio por
         # llenar 1 sólo depósito de la gasolinera cuando tiene 2 peticiones. Por tanto, asumimos que
         # cada vez que el camión visita una gasolinera, le sirve todas las peticiones pendientes.
-        
+
 
 
 
@@ -136,7 +137,7 @@ class CentrosDistribucion(object):
 
 
 
-class Problema(Problem):
+class Problema(object):
     def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras):
         self.centros = centros
         self.gasolineras = gasolineras
@@ -146,8 +147,6 @@ class Problema(Problem):
 
         self.pet_pendientes = []
         
-
-
 
 
 
