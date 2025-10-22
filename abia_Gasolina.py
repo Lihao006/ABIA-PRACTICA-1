@@ -102,6 +102,7 @@ class Camion(object):
         self.capacidad = capacidad
         self.num_viajes = 0
         self.km_recorridos = 0
+        
 
 class CentrosDistribucion(object):
     """
