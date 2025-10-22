@@ -108,7 +108,7 @@ class Camion(object):
         # hemos pensado de asignarle las peticiones en lugar de las gasolineras, pero no vemos ningún beneficio por
         # llenar 1 sólo depósito de la gasolinera cuando tiene 2 peticiones. Por tanto, asumimos que
         # cada vez que el camión visita una gasolinera, le sirve todas las peticiones pendientes.
-
+        
 
 
 
@@ -147,10 +147,20 @@ class Problema(object):
 
         self.pet_pendientes = []
 
-        
+
 
     
-    def calcula_coste_dist(self, ):
+    def coste_dist(self, ):
+
+
+
+    def perdidas_pet(self, ):
+
+
+    def beneficio(self, ):
+        
+
+    def 
         
 
 
