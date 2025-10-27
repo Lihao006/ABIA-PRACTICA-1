@@ -6,7 +6,7 @@ capacidad_maxima = 2
 
 
 class ProblemParameters(object):
-    def __init__(self, max_km: int, max_viajes: int, valor_deposito: int, coste_km_max: int, capacidad_maxima: int):
+    def __init__(self, max_km: int=max_km, max_viajes: int=max_viajes, valor_deposito: int=valor_deposito, coste_km_max: int=coste_km, capacidad_maxima: int=capacidad_maxima):
         self.max_km = max_km
         self.max_viajes = max_viajes
         self.valor_deposito = valor_deposito

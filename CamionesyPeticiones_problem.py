@@ -1,45 +1,38 @@
-# from aima.search import Problem, hill_climbing, simulated_annealing
+from aima.search import Problem, hill_climbing, simulated_annealing
+
+from typing import Generator
+
+
 from abia_Gasolina import Gasolineras, Gasolinera, CentrosDistribucion, Distribucion
-from Camion_state import Camion
+from Camion_state import Camion, Camiones
+from Camion_parameters import ProblemParameters
+from Camion_operators import CamionOperators
 
 
 
-class Problema(object):
-    def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras):
-        self.centros = centros
-        self.gasolineras = gasolineras
-        self.camiones = []
-        
-        # Crear un camión por cada centro de distribución
-        # Si multiplicidad > 1, varios camiones estarán en la misma posición inicial
-        for _ in range(len(centros.centros)):
-            camion = Camion(centros, gasolineras, capacidad_maxima)
-            self.camiones.append(camion)
-        
-        self.distancia_total = 0
-        self.beneficio_total = 0
 
-        self.pet_pendientes = []
+
+
+class CamionesyPeticiones(Problem):
+    def __init__(self, initial_state: Camiones):
+        super().__init__(initial_state)
+
+    def actions(self, state: Camiones) -> Generator[CamionOperators, None, None]:
+        return state.generate_actions()
+
+    def result(self, state: Camiones, action: CamionOperators) -> Camiones:
+        return state.apply_action(action)
+
+    def value(self, state: Camiones) -> float:
+        return -state.heuristic()
+
+    def goal_test(self, state: Camiones) -> bool:
+        return False
 
 
 
     
-    def coste_dist(self, ):
 
 
 
-    def perdidas_pet(self, ):
 
-
-    def beneficio(self, ):
-        
-
-    def 
-
-
-
-max_km = 640
-max_viajes = 5
-valor_deposito = 1000
-coste_km = 2
-capacidad_maxima = 2
