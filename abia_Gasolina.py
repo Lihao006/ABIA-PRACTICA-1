@@ -121,9 +121,6 @@ class CentrosDistribucion(object):
 
 class Camion(object):
 
-    """
-    No necesitamos la ubi del camión, porque será alguna del Centro de Distribución o de las gasolineras
-    """
     def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras, capacidad: int):
         self.ubicacion = (centros.centros[0].cx, centros.centros[0].cy)
         self.capacidad = capacidad
@@ -139,7 +136,14 @@ class Problema(object):
     def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras):
         self.centros = centros
         self.gasolineras = gasolineras
-        self.camiones = Camion(centros, gasolineras, capacidad_maxima)
+        self.camiones = []
+        
+        # Crear un camión por cada centro de distribución
+        # Si multiplicidad > 1, varios camiones estarán en la misma posición inicial
+        for _ in range(len(centros.centros)):
+            camion = Camion(centros, gasolineras, capacidad_maxima)
+            self.camiones.append(camion)
+        
         self.distancia_total = 0
         self.beneficio_total = 0
 
