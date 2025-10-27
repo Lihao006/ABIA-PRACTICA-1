@@ -129,10 +129,10 @@ class Camion(object):
         self.capacidad = capacidad
         self.num_viajes = 0
         self.km_recorridos = 0
-        self.asignaciones = []  # Lista de gasolineras asignadas en el viaje actual
-        # hemos pensado de asignarle las peticiones en lugar de las gasolineras, pero no vemos ningún beneficio por
-        # llenar 1 sólo depósito de la gasolinera cuando tiene 2 peticiones. Por tanto, asumimos que
-        # cada vez que el camión visita una gasolinera, le sirve todas las peticiones pendientes.s
+        self.asignaciones = []  # Lista de ubicaciones de gasolineras asignadas en el viaje actual. 
+        # Puede haber ubicaciones duplicadas que representen las dos peticiones de la misma gasolinera.
+        # Lo hacemos así porque puede existir el caso en que el camión llegue a alguna gasolinera con dos peticiones
+        # pendientes pero solo le queda capacidad para llenar un solo depósito.
 
 
 class Problema(object):
