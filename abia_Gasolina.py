@@ -153,18 +153,14 @@ class Problema(object):
 
     
     def coste_dist(self, ):
-
+        pass
 
 
     def perdidas_pet(self, ):
-
+        pass
 
     def beneficio(self, ):
-        
-
-    def 
-        
-
+        pass
 
 
 
