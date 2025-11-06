@@ -1,18 +1,9 @@
 import random
 from typing import List
-# from aima.search import Problem, hill_climbing, simulated_annealing
 
 DISTRIBUCION_PETICIONES = [0.05, 0.65, 0.25, 0.05]
 DISTRIBUCION_DIAS = [0.60, 0.20, 0.15, 0.05]
 
-
-max_km = 640
-max_viajes = 5
-valor_deposito = 1000
-coste_km = 2
-capacidad_maxima = 2
-
-# no utilizar el deepcopy
 
 class Gasolinera(object):
     """
@@ -93,7 +84,7 @@ class Distribucion(object):
         """
         self.cx = cx
         self.cy = cy
-        
+
 
 
 class CentrosDistribucion(object):
@@ -118,50 +109,6 @@ class CentrosDistribucion(object):
                                   self.my_random.randint(0, 99))
             for _ in range(multiplicidad):
                 self.centros.append(centro)
-
-class Camion(object):
-
-    def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras, capacidad: int):
-        self.ubicacion = (centros.centros[0].cx, centros.centros[0].cy)
-        self.capacidad = capacidad
-        self.num_viajes = 0
-        self.km_recorridos = 0
-        self.asignaciones = []  # Lista de ubicaciones de gasolineras asignadas en el viaje actual. 
-        # Puede haber ubicaciones duplicadas que representen las dos peticiones de la misma gasolinera.
-        # Lo hacemos así porque puede existir el caso en que el camión llegue a alguna gasolinera con dos peticiones
-        # pendientes pero solo le queda capacidad para llenar un solo depósito.
-
-
-class Problema(object):
-    def __init__(self, centros: CentrosDistribucion, gasolineras: Gasolineras):
-        self.centros = centros
-        self.gasolineras = gasolineras
-        self.camiones = []
-        
-        # Crear un camión por cada centro de distribución
-        # Si multiplicidad > 1, varios camiones estarán en la misma posición inicial
-        for _ in range(len(centros.centros)):
-            camion = Camion(centros, gasolineras, capacidad_maxima)
-            self.camiones.append(camion)
-        
-        self.distancia_total = 0
-        self.beneficio_total = 0
-
-        self.pet_pendientes = []
-
-
-
-    
-    def coste_dist(self, ):
-        pass
-
-
-    def perdidas_pet(self, ):
-        pass
-
-    def beneficio(self, ):
-        pass
-
 
 
 
