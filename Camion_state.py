@@ -4,8 +4,6 @@ from Camion_operators import CamionOperators
 
 from typing import Generator, List
 
-from bin_packing_state import StateRepresentation
-
 params = ProblemParameters()
 centros = CentrosDistribucion(params.num_centros, params.multiplicidad, params.seed)
 gasolineras = Gasolineras(params.num_gasolineras, params.seed)
@@ -68,41 +66,55 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
     camiones = Camiones(params, [])
     c = 0
     g = 0
-    while c < len(centros.centros):
-        camion = camiones.camiones[c]
+    camion = camiones.camiones[c]
+
+    # hacemos un bucle para cada camión
+    while c < len(camiones.camiones):
         x = gasolineras.gasolineras[g].cx
         y = gasolineras.gasolineras[g].cy
+        
+        # Asignamos las peticiones de la gasolinera g al camión c
+        for p in range(len(gasolineras.gasolineras[g].peticiones)):
 
-        # comprobamos que no supere el max_km y max_viajes
-        for j in range(len(gasolineras.gasolineras[g].peticiones)):
-            if camion.capacidad > 0:
-            camiones.camiones[c].viajes.append((x, y, gasolineras.gasolineras[g].peticiones[j]))
+            # esto servira para ahorrarnos un calculo de distancia para cada camión
+            # ya hemos comprobado que un camión puede hacer al menos 2 peticiones o 1 viaje sin problemas
+            if camion.num_viajes != 0:
+                if camion.num_viajes == params.max_viajes or calcular_distancia_camion(camion) + distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y)) > params.max_km:
+                    # si este camión no puede más, pasamos al siguiente camión
+                    c += 1
+                    # comprobamos que no nos salgamos del rango de camiones
+                    if c >= len(camiones.camiones):
+                        break
+                    camion = camiones.camiones[c]
+
+            camiones.camiones[c].viajes.append((x, y, gasolineras.gasolineras[g].peticiones[p]))
             camion.capacidad -= 1
-            # si el camión ha llegado a su capacidad máxima, vuelve al centro
-            # miramos que un camión no vaya a una gasolinera con el depósito vacío
-            if camion.capacidad == 0:
+
+            # miramos que un camión no vaya a una gasolinera con el depósito vacío y que aún pueda hacer más viajes
+            if camion.capacidad == 0 and camion.num_viajes < params.max_viajes:
                 camion.num_viajes += 1
                 camion.capacidad = params.capacidad_maxima
                 camion.viajes.append((centros.centros[0].cx, centros.centros[0].cy, -1))
         # pasamos a la siguiente gasolinera
         g += 1
-            
-        if calcular_distancia_camion(camion) + distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y)) <= params.max_km and camion.num_viajes < params.max_viajes:
-            # si este camión no puede más, pasamos al siguiente camión
-            c += 1
-
-
-
-    for i in range(len(camiones.camiones)):
-        x = gasolineras.gasolineras[i].cx
-        y = gasolineras.gasolineras[i].cy
-        
-        for j in range(len(gasolineras.gasolineras[i].peticiones)):
-            camiones.camiones[i].viajes.append((x, y, gasolineras.gasolineras[i].peticiones[j]))
-
+    
+    return camiones
+          
 
 def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
-    pass
+    camiones = Camiones(params, [])
+    c = 0
+    camion = camiones.camiones[c]
+    peticiones = []
+
+    # creamos una lista con todas las peticiones de las gasolineras y su indice de gasolinera
+    for g in range(len(gasolineras.gasolineras)):
+        for p in range(len(gasolineras.gasolineras[g].peticiones)):
+            peticiones.append((gasolineras.gasolineras[g].peticiones[p], g))
+
+    # ordenamos las peticiones de mayor a menor número de días de retraso, excepto las de 0 días, que iran al principio
+    peticiones.sort(key=lambda x: (x[0] != 0, -x[0]))
+
 
 
 # funcion para calcular la distancia total recorrida por un solo camión
