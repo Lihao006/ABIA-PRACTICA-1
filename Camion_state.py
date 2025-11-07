@@ -60,6 +60,8 @@ class Camiones(object):
         pass
 
 
+
+####################### Soluciones iniciales
 def generar_sol_inicial_vacio(params: ProblemParameters) -> Camiones:
     return Camiones(params, [])
 
@@ -185,7 +187,12 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
     
     return camiones
 
+###########################
 
+
+
+
+################################## Funciones auxiliares
 
 def volver_a_centro(camion: Camion) -> None:
     # Añadir un viaje de vuelta al centro de distribución, las restricciones se comprueban antes de llamar a esta función
@@ -201,5 +208,49 @@ def calcular_distancia_camion(camion: Camion) -> float:
         total_distance += distancia(camion.viajes[i-1][:2], camion.viajes[i][:2])
     return total_distance
 
+# dist L1
 def distancia(p1: tuple, p2: tuple) -> float:
     return abs(p2[0] - p1[0]) + abs(p2[1] - p1[1])
+
+# funcion ganancias de la solucion inicial
+# solo se llama una vez, para modificar las ganancias se usan otra funcion
+def ganancias_inicial(camiones: Camiones) -> float:
+    total_ganancias = 0
+    for camion in camiones.camiones:
+        for viaje in camion.viajes:
+            if viaje[2] == 0:
+                total_ganancias += 1000 * 1.02
+            elif viaje[2] > 0:
+                total_ganancias += 1000 * (1 - (2 ** viaje[2]) / 100)
+    return total_ganancias
+
+# modifica las ganancias a partir de las ganancias actuales
+def ganancias_nueva(camiones: Camiones) -> float:
+    pass
+
+# coste por km de la solucion inicial
+def coste_km_inicial(camiones: Camiones) -> float:
+    total_coste = 0
+    for camion in camiones.camiones:
+        total_coste += calcular_distancia_camion(camion) * params.coste_km_max
+    return total_coste
+
+def coste_km_nueva(camiones: Camiones) -> float:
+    total_coste = 0
+    for camion in camiones.camiones:
+        total_coste += calcular_distancia_camion(camion) * params.coste_km_max
+    return total_coste
+
+# coste de las peticiones no servidas en la solucion inicial
+# definiremos como coste a las perdidas por dejar una peticion sin servir durante un día más
+def coste_petno_inicial(camiones: Camiones) -> float:
+    total_coste = 0
+    for camion in camiones.camiones:
+        for viaje in camion.viajes:
+            if viaje[2] != -1:
+                total_coste += (1000 * (1 - (2 ** viaje[2]) / 100)) - (1000 * (1 - (2 ** (viaje[2]+1)) / 100))
+    return total_coste
+
+def coste_petno_nueva(camiones: Camiones) -> float:
+    pass
+#######################################
