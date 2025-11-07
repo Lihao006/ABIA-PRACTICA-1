@@ -95,13 +95,14 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
                 distancia_camion = calcular_distancia_camion(camion)
                 
                 # distancia desde la última posición del camión hasta la gasolinera
-                distancia_nueva = distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y))
+                distancia_gasolinera = distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y))
                 
                 # también calculamos la distancia de la gasolinera hasta el centro de distribución porque el camión debe poder 
                 # volver en cualquier momento sin sobrepasar el máximo de km
                 distancia_vuelta = distancia((x, y), (camion.viajes[0][0], camion.viajes[0][1]))
-                
-                if distancia_camion + distancia_nueva + distancia_vuelta > params.max_km:
+
+                distancia_total = distancia_camion + distancia_gasolinera + distancia_vuelta
+                if distancia_total > params.max_km:
                     # si este camión no puede más, lo enviamos de vuelta al centro
                     # estamos seguros de que tiene distancia suficiente para volver porque sinó debería haberse detenido en la iteración anterior
                     volver_a_centro(camion)
@@ -136,8 +137,9 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
             peticiones.append((gasolineras.gasolineras[g].peticiones[p], g))
 
     # ordenamos las peticiones de mayor a menor número de días de retraso, excepto las de 0 días, que iran al principio
+    # los FALSE se ordenan antes que los TRUE en la función sort(), luego la parte de TRUE se ordena de mayor a menor
     peticiones.sort(key=lambda x: (x[0] != 0, -x[0]))
-    
+
     # asignamos las peticiones a los camiones más cercanos
     for peticion, g in peticiones:
         x = gasolineras.gasolineras[g].cx
@@ -147,33 +149,40 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
         distancia_minima = float('inf')
         camion_seleccionado = None
         
-        # miremos que los camiones puedan hacer la peticion
+        # miremos que los camiones tengan viajes disponibles
         # luego buscamos el camión más cercano
         # no podremos ahorrar cálculos de distancia como antes usando la propiedad de que los camiones sin viajes pueden 
         # servir al menos 2 peticiones sin problemas, porque necesitamos buscar el camión más cercano
         for camion in camiones.camiones:
-            # Si puede hacer más viajes y tiene capacidad, calculamos la distancia al siguiente punto
-            # igual que antes, comprobamos que el camión pueda volver al centro en cualquier momento
-            if camion.num_viajes < params.max_viajes and camion.capacidad > 0:
-                distancia_actual = distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y))
+          
+            # Las distancias hasta la gasolinera se calculan con el penúltimo elemento de la lista de viajes
+            # comprobamos si puede hacer más viajes y tiene capacidad
+            # Igual que antes, comprobamos que el camión pueda volver al centro en cualquier momento
+            if camion.num_viajes < params.max_viajes:
+                distancia_gasolinera = distancia((camion.viajes[-2][0], camion.viajes[-2][1]), (x, y))
                 distancia_volver = distancia((x, y), (camion.viajes[0][0], camion.viajes[0][1]))
-                distancia_total = calcular_distancia_camion(camion) + distancia_actual + distancia_volver
+                distancia_total = calcular_distancia_camion(camion) + distancia_gasolinera + distancia_volver
 
-                if distancia_total <= params.max_km and distancia_actual < distancia_minima:
-                    distancia_minima = distancia_actual
+                # Buscamos el camión más cercano entre los que están disponibles
+                if distancia_total <= params.max_km and distancia_gasolinera < distancia_minima:
+                    distancia_minima = distancia_gasolinera
                     camion_seleccionado = camion
 
+        # si hemos encontrado un camión adecuado, le asignamos la petición
         if camion_seleccionado is not None:
             camion_seleccionado.viajes.append((x, y, peticion))
             camion_seleccionado.capacidad -= 1
 
-            if camion_seleccionado.capacidad == 0 and camion_seleccionado.num_viajes < params.max_viajes:
+            # miramos que un camión no vaya a una gasolinera con el depósito vacío y que aún pueda hacer más viajes
+            if camion_seleccionado.capacidad == 0:
                 volver_a_centro(camion_seleccionado)
     
-        else:
-            # si no hay ningún camión que pueda hacer la petición, detenemos las asignaciones
-            break
-        
+    # nos aseguramos de que todos los camiones terminen en el centro
+    # tendrán distancia suficiente para volver
+    for camion in camiones.camiones:
+        if camion.viajes[-1][2] != -1:
+            volver_a_centro(camion)
+    
     return camiones
 
 
@@ -184,7 +193,6 @@ def volver_a_centro(camion: Camion) -> None:
     camion.viajes.append((centro_origen[0], centro_origen[1], -1))
     camion.num_viajes += 1
     camion.capacidad = params.capacidad_maxima
-
 
 # funcion para calcular la distancia total recorrida por un solo camión
 def calcular_distancia_camion(camion: Camion) -> float:
