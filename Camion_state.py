@@ -77,12 +77,35 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
         
         # Asignamos las peticiones de la gasolinera g al camión c
         for p in range(len(gasolineras.gasolineras[g].peticiones)):
+            
+            # si el camión ha llegado al máximo de viajes, no hace falta calcular distancias
+            # podemos estar seguros de que si el camión no puede hacer más viajes, ya está en el centro
+            if camion.num_viajes == params.max_viajes:
+                # pasamos al siguiente camión
+                c += 1
+                # comprobamos que no nos salgamos del rango de camiones
+                if c >= len(camiones.camiones):
+                    break
+                camion = camiones.camiones[c]
 
             # esto servira para ahorrarnos un calculo de distancia para cada camión
             # ya hemos comprobado que un camión puede hacer al menos 2 peticiones o 1 viaje sin problemas
             if camion.num_viajes != 0:
-                if camion.num_viajes == params.max_viajes or calcular_distancia_camion(camion) + distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y)) > params.max_km:
-                    # si este camión no puede más, pasamos al siguiente camión
+                # distancia acumulada del camión hasta el momento
+                distancia_camion = calcular_distancia_camion(camion)
+                
+                # distancia desde la última posición del camión hasta la gasolinera
+                distancia_nueva = distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y))
+                
+                # también calculamos la distancia de la gasolinera hasta el centro de distribución porque el camión debe poder 
+                # volver en cualquier momento sin sobrepasar el máximo de km
+                distancia_vuelta = distancia((x, y), (camion.viajes[0][0], camion.viajes[0][1]))
+                
+                if distancia_camion + distancia_nueva + distancia_vuelta > params.max_km:
+                    # si este camión no puede más, lo enviamos de vuelta al centro
+                    # estamos seguros de que tiene distancia suficiente para volver porque sinó debería haberse detenido en la iteración anterior
+                    volver_a_centro(camion)
+                    # pasamos al siguiente camión
                     c += 1
                     # comprobamos que no nos salgamos del rango de camiones
                     if c >= len(camiones.camiones):
@@ -93,8 +116,10 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
             camion.capacidad -= 1
 
             # miramos que un camión no vaya a una gasolinera con el depósito vacío y que aún pueda hacer más viajes
-            if camion.capacidad == 0 and camion.num_viajes < params.max_viajes:
+            # ya habremos comprobado que el camión puede volver al centro sin sobrepasar el máximo de km
+            if camion.capacidad == 0:
                 volver_a_centro(camion)
+        
         # pasamos a la siguiente gasolinera
         g += 1
     
@@ -128,9 +153,11 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
         # servir al menos 2 peticiones sin problemas, porque necesitamos buscar el camión más cercano
         for camion in camiones.camiones:
             # Si puede hacer más viajes y tiene capacidad, calculamos la distancia al siguiente punto
+            # igual que antes, comprobamos que el camión pueda volver al centro en cualquier momento
             if camion.num_viajes < params.max_viajes and camion.capacidad > 0:
                 distancia_actual = distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y))
-                distancia_total = calcular_distancia_camion(camion) + distancia_actual
+                distancia_volver = distancia((x, y), (camion.viajes[0][0], camion.viajes[0][1]))
+                distancia_total = calcular_distancia_camion(camion) + distancia_actual + distancia_volver
 
                 if distancia_total <= params.max_km and distancia_actual < distancia_minima:
                     distancia_minima = distancia_actual
