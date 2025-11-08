@@ -12,7 +12,7 @@ gasolineras = Gasolineras(params.num_gasolineras, params.seed)
 class Camion(object):
 
     def __init__(self, viajes: List[tuple]):
-        self.capacidad = 2
+        self.capacidad = params.capacidad_maxima
         self.num_viajes = 0
         self.km_recorridos = 0
 
@@ -27,7 +27,9 @@ class Camion(object):
         # distinguir el orden de visitas a gasolineras y centros para poder calcular la distancia recorrida.
 
         # El primer elemento de la lista de viajes es siempre el centro de distribución inicial.
-        def copy(self) -> 'Camion':
+    
+    # tenemos que definir un copy también para la clase Camion
+    def copy(self) -> 'Camion':
             nuevo = Camion(self.viajes.copy())
             nuevo.capacidad = self.capacidad
             nuevo.num_viajes = self.num_viajes
@@ -37,16 +39,16 @@ class Camion(object):
 class Camiones(object):
     def __init__(self, params: ProblemParameters, camiones: List[Camion]):
         self.params = params
-
+        self.camiones = camiones
         # Crear un camión por cada centro de distribución si la lista de camiones está vacía
         # Si multiplicidad > 1, varios camiones estarán en la misma posición inicial
-        if len(camiones) == 0:
+        if len(self.camiones) == 0:
             for c in range(len(centros.centros)):
                 camion = Camion([(centros.centros[c].cx, centros.centros[c].cy, -1)])
                 for _ in range(params.multiplicidad):
                     self.camiones.append(camion)
-        else:
-            self.camiones = camiones
+
+
         
     def copy(self) -> 'Camiones':
         # Afegim el copy per cada llista de camions
@@ -267,12 +269,9 @@ class Camiones(object):
             return camiones_copy
         
         return camiones_copy
-    
+
     def heuristic(self, ganancias: float, coste_km: float, coste_petno: float) -> float:
-        h = ganancias - coste_km - coste_petno
-        return h
-
-
+        return ganancias - coste_km - coste_petno
 
 ####################### Soluciones iniciales
 def generar_sol_inicial_vacio(params: ProblemParameters) -> Camiones:
