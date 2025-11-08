@@ -51,10 +51,153 @@ class Camiones(object):
         return Camiones(self.params, camiones_copy)
 
     def generate_actions(self) -> Generator[CamionOperators, None, None]:
-        pass
+        """
+        Generar operadores:
+        - MoverPeticion: mover una petición (cualquier viaje con petición != -1) de un camión al final de otro camión.
+        - AsignarPeticion: asignar peticiones no asignadas a un camión
+        """
+        # MoverPeticion
+        for cam_i, camion in enumerate(self.camiones):
+            # iteramos sobre los viajes; permitimos mover cualquier viaje que sea una petición
+            for viaje_i, viaje in enumerate(camion.viajes):
+                pet = viaje[2]
+                if pet == -1:
+                    continue
+                # mover esta petición a cualquier camión
+                for cam_j, camion_j in enumerate(self.camiones):
+                    if cam_j == cam_i:
+                        continue
+                    # limite de la cisterna
+                    if camion_j.capacidad <= 0:
+                        continue
+                    yield MoverPeticion((cam_i, viaje_i), cam_i, cam_j)
+
+        # AsignarPeticion
+        # primero construimos un set de peticiones asignadas
+        asignado = set()
+        for camion in self.camiones:
+            for viaje in camion.viajes:
+                if viaje[2] != -1:
+                    asignado.add((viaje[0], viaje[1], viaje[2]))
+
+        for gas_i, g in enumerate(gasolineras.gasolineras):
+            for pet_i, pet in enumerate(g.peticiones):
+                viaje_repr = (g.cx, g.cy, pet)
+                if viaje_repr in asignado:
+                    continue
+                # intentamos asignar a cualquier camión que cumpla con los requisitos
+                for cam_i, camion in enumerate(self.camiones):
+                    # limite capacidad
+                    if camion.capacidad <= 0:
+                        continue
+
+                    # miramos el limite de la cisterna (numero de peticiones consecutivas desde el último centro)
+                    # buscamos el indice del ultimo centro
+                    ult_centro = None
+                    for x in range(len(camion.viajes)-1, -1, -1):
+                        if camion.viajes[x][2] == -1:
+                            ult_centro = x
+                            break
+                    consec_peticiones = 0
+                    start_x = ult_centro + 1 if ult_centro is not None else 0
+                    for x in range(start_x, len(camion.viajes)):
+                        if camion.viajes[x][2] != -1:
+                            consec_peticiones += 1
+                    # saltamos si esta petición aumenta el limite
+                    if consec_peticiones + 1 > self.params.capacidad_maxima:
+                        continue
+
+                    # caculamos la nueva distancia
+                    distancia_actual = calcular_distancia_camion(camion)
+                    last_pos = (camion.viajes[-1][0], camion.viajes[-1][1])
+                    distancia_gasolinera = distancia(last_pos, (g.cx, g.cy))
+                    distancia_vuelta = distancia((g.cx, g.cy), (camion.viajes[0][0], camion.viajes[0][1]))
+                    distancia_total = distancia_actual + distancia_gasolinera + distancia_vuelta
+                    if distancia_total > self.params.max_km:
+                        continue
+                    # si cumplimos todas las restricciones:
+                    yield AsignarPeticion((gas_i, pet_i), cam_i)
 
     def apply_action(self, action: CamionOperators) -> Camiones:
-        pass
+        """
+        Aplicar el operador dado:
+         - MoverPeticion((cam_i, viaje_i), cam_i, cam_j)
+         - AsignarPeticion((gas_i, pet_i), cam_i)
+        """
+        camiones_copy = self.copy()
+
+        # MoverPeticion
+        if isinstance(action, MoverPeticion):
+            cam_org, viaje_i = action.pet_i
+            org = camiones_copy.camiones[action.cam_i]
+            dest = camiones_copy.camiones[action.cam_j]
+
+            # validamos índices
+            if viaje_i < 0 or viaje_i >= len(org.viajes):
+                return camiones_copy
+            trip = org.viajes[viaje_i]
+            if trip[2] == -1:
+                return camiones_copy
+
+            # límite de la cisterna
+            if dest.capacidad <= 0:
+                return camiones_copy
+
+            # eliminamos del camión origen
+            org.viajes.pop(viaje_i)
+
+            # añadimos al camión destino
+            dest.viajes.append(trip)
+            dest.capacidad -= 1
+            # si la capacidad llega a cero, vuelve al centro
+            if dest.capacidad == 0:
+                volver_a_centro(dest)
+
+            #  si la última entrada es un centro y no hay peticiones después del centro anterios,
+            # eliminamos ese centro y disminuimos num_viajes
+            # contar peticiones después del último centro 
+            ult_centro = None
+            for x in range(len(org.viajes)-1, -1, -1):
+                if org.viajes[x][2] == -1:
+                    ult_centro = x
+                    break
+            consec_peticiones = 0
+            start_x = ult_centro + 1 if ult_centro is not None else 0
+            for x in range(start_x, len(org.viajes)):
+                if org.viajes[x][2] != -1:
+                    consec_peticiones += 1
+            if ult_centro is not None and consec_peticiones == 0:
+                # eliminar el centro rebundante y modificar num_viajes si se puee
+                if org.viajes and org.viajes[-1][2] == -1:
+                    org.viajes.pop()
+                    if org.num_viajes > 0:
+                        org.num_viajes -= 1
+                    org.capacidad = self.params.capacidad_maxima
+            return camiones_copy
+
+        # AsignarPeticion
+        if isinstance(action, AsignarPeticion):
+            (gas_i, pet_i) = action.pet_i
+            camion = camiones_copy.camiones[action.cam_i]
+
+            # validación 
+            if camion.capacidad <= 0:
+                return camiones_copy
+            if gas_i < 0 or gas_i >= len(gasolineras.gasolineras):
+                return camiones_copy
+            gas = gasolineras.gasolineras[gas_i]
+            if pet_i < 0 or pet_i >= len(gas.peticiones):
+                return camiones_copy
+
+            pet = gas.peticiones[pet_i]
+            # añadir viaje
+            camion.viajes.append((gas.cx, gas.cy, pet))
+            camion.capacidad -= 1
+            # si la capacidad llega a 0, devolvemos el camión al centro
+            if camion.capacidad == 0:
+                volver_a_centro(camion)
+            return camiones_copy
+        return camiones_copy
     
     def heuristic(self) -> float:
         pass
