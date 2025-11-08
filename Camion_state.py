@@ -368,8 +368,21 @@ def ganancias_inicial(camiones: Camiones) -> float:
     return total_ganancias
 
 # modifica las ganancias a partir de las ganancias actuales
-def ganancias_nueva(camiones: Camiones) -> float:
-    pass
+# la única manera de variar las ganancias es asignando o quitando peticiones
+# por tanto las ganancias solo dependen de las peticiones, no hace nos hace falta saber el camión
+# para saber si se asigna o elimina una petición pondremos un string operacion
+def mod_ganancias(peticion: tuple, ganancia_actual: float, operacion: str) -> float:
+    if operacion == "asignar":
+        if peticion[2] == 0:
+            return ganancia_actual + params.valor_deposito * 1.02
+        elif peticion[2] > 0:
+            return ganancia_actual + params.valor_deposito * (1 - (2 ** peticion[2]) / 100)
+    elif operacion == "eliminar":
+        if peticion[2] == 0:
+            return ganancia_actual - params.valor_deposito * 1.02
+        elif peticion[2] > 0:
+            return ganancia_actual - params.valor_deposito * (1 - (2 ** peticion[2]) / 100)
+    return ganancia_actual
 
 # coste por km de la solucion inicial
 def coste_km_inicial(camiones: Camiones) -> float:
@@ -378,11 +391,15 @@ def coste_km_inicial(camiones: Camiones) -> float:
         total_coste += calcular_distancia_camion(camion) * params.coste_km_max
     return total_coste
 
-def coste_km_nueva(camiones: Camiones) -> float:
-    total_coste = 0
-    for camion in camiones.camiones:
-        total_coste += calcular_distancia_camion(camion) * params.coste_km_max
-    return total_coste
+# el coste por km se modifica cuando se altera la lista de viajes de un camión, 
+# ya sea añadiendo, eliminando o moviendo peticiones. Solo necesitamos saber el camión modificado
+# necesitamos la distancia anterior y la nueva distancia de este camión
+def coste_km_1camion(camion: Camion) -> float:
+    return calcular_distancia_camion(camion) * params.coste_km_max
+
+# restamos el coste anterior y sumamos el nuevo coste
+def mod_coste_km(cost_cam_ant: float, cost_cam_nue: float, coste_actual: float) -> float:
+    return coste_actual - cost_cam_ant + cost_cam_nue
 
 # coste de las peticiones no servidas en la solucion inicial
 # definiremos como coste a las perdidas por dejar una peticion sin servir durante un día más
@@ -390,10 +407,26 @@ def coste_petno_inicial(camiones: Camiones) -> float:
     total_coste = 0
     for camion in camiones.camiones:
         for viaje in camion.viajes:
-            if viaje[2] != -1:
-                total_coste += (1000 * (1 - (2 ** viaje[2]) / 100)) - (1000 * (1 - (2 ** (viaje[2]+1)) / 100))
+            if viaje[2] == 0:
+                total_coste += ((params.valor_deposito * 1.02) - (params.valor_deposito * 0.98))
+            elif viaje[2] > 0:
+                total_coste += (params.valor_deposito * (1 - (2 ** viaje[2]) / 100)) - (params.valor_deposito * (1 - (2 ** (viaje[2]+1)) / 100))
     return total_coste
 
-def coste_petno_nueva(camiones: Camiones) -> float:
-    pass
+# la única manera de modificar el coste de peticiones no servidas es asignando o eliminando peticiones
+# por tanto solo necesitamos saber la peticion asignada o eliminada
+# si se asigna una peticion, el coste disminuye
+# si se elimina una peticion, el coste aumenta
+def mod_coste_petno(peticion: tuple, coste_actual: float, operacion: str) -> float:
+    if operacion == "asignar":
+        if peticion[2] == 0:
+            return coste_actual - (params.valor_deposito * 1.02) + (params.valor_deposito * 0.98)
+        elif peticion[2] > 0:
+            return coste_actual - (params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) + (params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
+    elif operacion == "eliminar":
+        if peticion[2] == 0:
+            return coste_actual + (params.valor_deposito * 1.02) - (params.valor_deposito * 0.98)
+        elif peticion[2] > 0:
+            return coste_actual + (params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
+    return coste_actual
 #######################################
