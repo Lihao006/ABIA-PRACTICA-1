@@ -199,8 +199,9 @@ class Camiones(object):
             return camiones_copy
         return camiones_copy
     
-    def heuristic(self) -> float:
-        pass
+    def heuristic(self, ganancias: float, coste_km: float, coste_petno: float) -> float:
+        h = ganancias - coste_km - coste_petno
+        return h
 
 
 
@@ -356,7 +357,7 @@ def distancia(p1: tuple, p2: tuple) -> float:
     return abs(p2[0] - p1[0]) + abs(p2[1] - p1[1])
 
 # funcion ganancias de la solucion inicial
-# solo se llama una vez, para modificar las ganancias se usan otra funcion
+# solo se llama una vez, para modificar las ganancias se usa otra funcion de menor coste computacional
 def ganancias_inicial(camiones: Camiones) -> float:
     total_ganancias = 0
     for camion in camiones.camiones:
@@ -397,7 +398,7 @@ def coste_km_inicial(camiones: Camiones) -> float:
 def coste_km_1camion(camion: Camion) -> float:
     return calcular_distancia_camion(camion) * params.coste_km_max
 
-# restamos el coste anterior y sumamos el nuevo coste
+# restamos el coste anterior de ese camión y sumamos el nuevo coste
 def mod_coste_km(cost_cam_ant: float, cost_cam_nue: float, coste_actual: float) -> float:
     return coste_actual - cost_cam_ant + cost_cam_nue
 
