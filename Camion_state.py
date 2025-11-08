@@ -1,6 +1,6 @@
 from abia_Gasolina import *
 from Camion_parameters import ProblemParameters
-from Camion_operators import CamionOperators
+from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion
 
 from typing import Generator, List
 
