@@ -1,6 +1,6 @@
 from abia_Gasolina import *
 from Camion_parameters import ProblemParameters
-from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion
+from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones
 
 from typing import Generator, List
 
@@ -27,7 +27,12 @@ class Camion(object):
         # distinguir el orden de visitas a gasolineras y centros para poder calcular la distancia recorrida.
 
         # El primer elemento de la lista de viajes es siempre el centro de distribución inicial.
-
+        def copy(self) -> 'Camion':
+            nuevo = Camion(self.viajes.copy())
+            nuevo.capacidad = self.capacidad
+            nuevo.num_viajes = self.num_viajes
+            nuevo.km_recorridos = self.km_recorridos
+            return nuevo
 
 class Camiones(object):
     def __init__(self, params: ProblemParameters, camiones: List[Camion]):
@@ -42,10 +47,8 @@ class Camiones(object):
                     self.camiones.append(camion)
         else:
             self.camiones = camiones
-
-
         
-    def copy(self) -> Camiones:
+    def copy(self) -> 'Camiones':
         # Afegim el copy per cada llista de camions
         camiones_copy = [camion.copy() for camion in self.camiones]
         return Camiones(self.params, camiones_copy)
@@ -117,12 +120,55 @@ class Camiones(object):
                         continue
                     # si cumplimos todas las restricciones:
                     yield AsignarPeticion((gas_i, pet_i), cam_i)
+                    
+        #SwapPeticiones
+        # iteramos sobre distintas parejas de camiones
+        for cam_i in range(len(self.camiones)):
+            for cam_j in range(cam_i + 1, len(self.camiones)):
+                camion_i = self.camiones[cam_i]
+                camion_j = self.camiones[cam_j]
+                # recogemos el índice de la petición para cada camión
+                ind_i = [ind for ind, v in enumerate(camion_i.viajes) if v[2] != -1]
+                ind_j = [ind for ind, v in enumerate(camion_j.viajes) if v[2] != -1]
+                for ii in ind_i:
+                    for jj in ind_j:
+                        # aseguramos las restricciones de la cisterna después del swap
+                        #  calculamos peticiones consecutivas desde el último centro
+                        def desp_swap(cam, eliminar_ind, añadir_viaje):
+                            # construimos una lista de viajes después de eliminar el indice y añadir el viaje
+                            viajes = cam.viajes.copy()
+                            # eliminamos el indice
+                            viajes.pop(eliminar_ind)
+                            # añadimos el viaje
+                            viajes.append(añadir_viaje)
+                            # encontramos el último centro
+                            ult_centro = None
+                            for x in range(len(viajes)-1, -1, -1):
+                                if viajes[x][2] == -1:
+                                    ult_centro = x
+                                    break
+                            consec = 0
+                            start_x = ult_centro + 1 if ult_centro is not None else 0
+                            for x in range(start_x, len(viajes)):
+                                if viajes[x][2] != -1:
+                                    consec += 1
+                            return consec
+
+                        trip_i = camion_i.viajes[ii]
+                        trip_j = camion_j.viajes[jj]
+                        # miramos la capacidad de la cisterna de ambos camiones después del swap 
+                        consec_i = desp_swap(camion_i, ii, trip_j)
+                        consec_j = desp_swap(camion_j, jj, trip_i)
+                        if consec_i > self.params.capacidad_maxima or consec_j > self.params.capacidad_maxima:
+                            continue
+                        yield SwapPeticiones(ii, jj, cam_i, cam_j)
 
     def apply_action(self, action: CamionOperators) -> Camiones:
         """
         Aplicar el operador dado:
          - MoverPeticion((cam_i, viaje_i), cam_i, cam_j)
          - AsignarPeticion((gas_i, pet_i), cam_i)
+         - SwapPeticion()
         """
         camiones_copy = self.copy()
 
@@ -148,31 +194,14 @@ class Camiones(object):
 
             # añadimos al camión destino
             dest.viajes.append(trip)
-            dest.capacidad -= 1
+            # Recalcular estado para ambos camiones
+            limpiar_centros_redundantes(org, self.params)
+            limpiar_centros_redundantes(dest, self.params)
             # si la capacidad llega a cero, vuelve al centro
             if dest.capacidad == 0:
                 volver_a_centro(dest)
-
-            #  si la última entrada es un centro y no hay peticiones después del centro anterios,
-            # eliminamos ese centro y disminuimos num_viajes
-            # contar peticiones después del último centro 
-            ult_centro = None
-            for x in range(len(org.viajes)-1, -1, -1):
-                if org.viajes[x][2] == -1:
-                    ult_centro = x
-                    break
-            consec_peticiones = 0
-            start_x = ult_centro + 1 if ult_centro is not None else 0
-            for x in range(start_x, len(org.viajes)):
-                if org.viajes[x][2] != -1:
-                    consec_peticiones += 1
-            if ult_centro is not None and consec_peticiones == 0:
-                # eliminar el centro rebundante y modificar num_viajes si se puee
-                if org.viajes and org.viajes[-1][2] == -1:
-                    org.viajes.pop()
-                    if org.num_viajes > 0:
-                        org.num_viajes -= 1
-                    org.capacidad = self.params.capacidad_maxima
+            #limpiar centros rebundantes y recacular num_viajes/capacidad 
+            limpiar_centros_redundantes(org, self.params)
             return camiones_copy
 
         # AsignarPeticion
@@ -192,11 +221,51 @@ class Camiones(object):
             pet = gas.peticiones[pet_i]
             # añadir viaje
             camion.viajes.append((gas.cx, gas.cy, pet))
-            camion.capacidad -= 1
+            limpiar_centros_redundantes(camion, self.params)
             # si la capacidad llega a 0, devolvemos el camión al centro
             if camion.capacidad == 0:
                 volver_a_centro(camion)
             return camiones_copy
+        #SwapPeticiones
+        if isinstance(action, SwapPeticiones):
+            ii = action.pet_i
+            jj = action.pet_j
+            cam_i = action.cam_i
+            cam_j = action.cam_j
+            org = camiones_copy.camiones[cam_i]
+            dest = camiones_copy.camiones[cam_j]
+
+            # validamos indices
+            if ii < 0 or ii >= len(org.viajes):
+                return camiones_copy
+            if jj < 0 or jj >= len(dest.viajes):
+                return camiones_copy
+            if org.viajes[ii][2] == -1 or dest.viajes[jj][2] == -1:
+                return camiones_copy
+
+            # extraemos viajes antes del cambio
+            trip_i = org.viajes[ii]
+            trip_j = dest.viajes[jj]
+
+            # eliminamos del origen y del destino
+            org.viajes.pop(ii)
+            dest.viajes.pop(jj)
+
+            # añadimos los viajes intercambiados
+            org.viajes.append(trip_j)
+            dest.viajes.append(trip_i)
+
+            # Recalcular estado de ambos camiones (num_viajes y capacidad)
+            limpiar_centros_redundantes(org, self.params)
+            limpiar_centros_redundantes(dest, self.params)
+
+            # si alguna capacidad queda a 0 tras la recalculación, enviarlo al centro
+            if org.capacidad == 0:
+                volver_a_centro(org)
+            if dest.capacidad == 0:
+                volver_a_centro(dest)
+            return camiones_copy
+        
         return camiones_copy
     
     def heuristic(self, ganancias: float, coste_km: float, coste_petno: float) -> float:
@@ -430,4 +499,41 @@ def mod_coste_petno(peticion: tuple, coste_actual: float, operacion: str) -> flo
         elif peticion[2] > 0:
             return coste_actual + (params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
     return coste_actual
+
+def limpiar_centros_redundantes(camion: Camion, params: ProblemParameters) -> None:
+    # eliminar centros finales redundantes (si no hay peticiones después del centro anterior)
+    while camion.viajes and camion.viajes[-1][2] == -1:
+        # buscar penúltimo centro
+        penult = None
+        for x in range(len(camion.viajes)-2, -1, -1):
+            if camion.viajes[x][2] == -1:
+                penult = x
+                break
+        # comprobar si hay peticiones entre penult+1 y el penúltimo elemento (excluyendo último centro)
+        start = penult + 1 if penult is not None else 0
+        hay_peticiones = any(v[2] != -1 for v in camion.viajes[start:len(camion.viajes)-1])
+        if not hay_peticiones:
+            camion.viajes.pop()
+        else:
+            break
+
+    # Recalcular num_viajes: número de retornos al centro (excluyendo centro inicial)
+    total_centros = sum(1 for v in camion.viajes if v[2] == -1)
+    camion.num_viajes = max(0, total_centros - 1)
+
+    # Recalcular capacidad según peticiones consecutivas desde el último centro
+    last_center = None
+    for id in range(len(camion.viajes)-1, -1, -1):
+        if camion.viajes[id][2] == -1:
+            ult_centro = id
+            break
+    consec = 0
+    start = ult_centro + 1 if ult_centro is not None else 0
+    for v in camion.viajes[start:]:
+        if v[2] != -1:
+            consec += 1
+    camion.capacidad = params.capacidad_maxima - consec
+    if camion.capacidad < 0:
+        camion.capacidad = 0
+
 #######################################
