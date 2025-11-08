@@ -165,7 +165,7 @@ class Camiones(object):
                             continue
                         yield SwapPeticiones(ii, jj, cam_i, cam_j)
 
-    def apply_action(self, action: CamionOperators) -> Camiones:
+    def apply_action(self, action: CamionOperators) -> 'Camiones':
         """
         Aplicar el operador dado:
          - MoverPeticion((cam_i, viaje_i), cam_i, cam_j)
