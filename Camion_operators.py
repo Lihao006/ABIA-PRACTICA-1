@@ -2,7 +2,7 @@ class CamionOperators(object):
     pass
 
 class MoverPeticion(CamionOperators):
-    def __init__(self, pet_i: int, cam_i: int, cam_j: int):
+    def __init__(self, pet_i: tuple, cam_i: int, cam_j: int):
         self.pet_i = pet_i
         self.cam_i = cam_i
         self.cam_j = cam_j
