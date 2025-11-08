@@ -4,13 +4,9 @@ from typing import Generator
 
 
 from abia_Gasolina import Gasolineras, Gasolinera, CentrosDistribucion, Distribucion
-from Camion_state import Camion, Camiones
+from Camion_state import *
 from Camion_parameters import ProblemParameters
 from Camion_operators import CamionOperators
-
-
-
-
 
 
 class CamionesyPeticiones(Problem):
@@ -24,7 +20,7 @@ class CamionesyPeticiones(Problem):
         return state.apply_action(action)
 
     def value(self, state: Camiones) -> float:
-        return -state.heuristic()
+        return state.heuristic()
 
     def goal_test(self, state: Camiones) -> bool:
         return False
