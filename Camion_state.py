@@ -1,6 +1,6 @@
 from abia_Gasolina import *
 from Camion_parameters import ProblemParameters
-from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones, EliminarPeticion, MoverAntes, MoverDespues
+from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones, EliminarPeticiones, MoverAntes, MoverDespues
 
 from typing import Generator, List
 
@@ -214,7 +214,7 @@ class Camiones(object):
                 pet = viaje[2]
                 if pet == -1:
                     continue
-                yield EliminarPeticion((cam_i, viaje_i), cam_i)
+                yield EliminarPeticiones((cam_i, viaje_i), cam_i)
 
 
 
@@ -429,8 +429,8 @@ class Camiones(object):
 
             return camiones_copy
         
-        # EliminarPeticion
-        if isinstance(action, EliminarPeticion):
+        # EliminarPeticiones
+        if isinstance(action, EliminarPeticiones):
             cam_i, viaje_i = action.pet_i
             camion = camiones_copy.camiones[action.cam_i]
 
