@@ -119,7 +119,7 @@ class Camiones(object):
         camion_consec = [0] * num_cam
         camion_capacidad = [0] * num_cam
         for i, camion in enumerate(self.camiones):
-            camion_distancia[i] = camion.km_recorridos
+            camion_distancia[i] = calcular_distancia_camion(camion)
             camion_ult_pos[i] = (camion.viajes[-1][0], camion.viajes[-1][1])
             camion_capacidad[i] = camion.capacidad
             ult = None
@@ -718,6 +718,7 @@ def calcular_distancia_camion(camion: Camion) -> float:
     total_distance = 0
     for i in range(1, len(camion.viajes)):
         total_distance += distancia(camion.viajes[i-1][:2], camion.viajes[i][:2])
+    assert total_distance >= 0 and total_distance <= params.max_km
     camion.km_recorridos = total_distance
     return total_distance
 
@@ -747,7 +748,7 @@ def limpiar_centros_redundantes(camion: Camion, params: ProblemParameters) -> No
     camion.num_viajes = max(0, total_centros - 1)
 
     # Recalcular capacidad según peticiones consecutivas desde el último centro
-    ult_centro = None
+    last_center = None
     for id in range(len(camion.viajes)-1, -1, -1):
         if camion.viajes[id][2] == -1:
             ult_centro = id
