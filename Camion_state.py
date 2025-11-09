@@ -1,6 +1,6 @@
 from abia_Gasolina import *
 from Camion_parameters import ProblemParameters
-from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones, EliminarPeticion
+from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones, EliminarPeticion, MoverAntes, MoverDespues
 
 from typing import Generator, List
 
@@ -87,6 +87,38 @@ class Camiones(object):
                         continue
                     yield MoverPeticion((cam_i, viaje_i), cam_i, cam_j)
 
+        #MoverAntes 
+        for cam_i, camion in enumerate(self.camiones):
+            for viaje_i, viaje in enumerate(camion.viajes):
+                if viaje[2] == -1:
+                    continue
+                # posibles posiciones de insercion anteriores 
+            for pos_obj in range(1, viaje_i):
+                # generamos el operador para mover la peticion de viaje_i a la pos_obj
+                yield MoverAntes(cam_i, viaje_i, viaje_i, pos_obj)
+        
+        # MoverDespues 
+        for cam_i, camion in enumerate(self.camiones):
+            #buscamos el índice de la primera peticion
+            primer_pet_ind = None
+            for ind in range(1, len(camion.viajes)):
+                if camion.viajes[ind][2] != -1:
+                    primer_pet_ind = ind
+                    break
+        for viaje_i, viaje in enumerate(camion.viajes):
+            if viaje[2] == -1:
+                continue
+            # si es la primera peticion, generamos el operador que lo manda a la ultima posicion
+            if viaje_i == primer_pet_ind:
+                pos_obj = len(camion.viajes) - 1
+                # nos aseguramos que no está ya en la ultima posicion
+                if viaje_i < pos_obj:
+                    yield MoverDespues(cam_i, viaje_i, viaje_i, pos_obj)
+            else:
+                # mover una posicion hacia delante (siempre que no sea la ult)
+                if viaje_i + 1 < len(camion.viajes):
+                    yield MoverDespues(cam_i, viaje_i, viaje_i + 1)
+                    
         # AsignarPeticion
         # primero construimos un set de peticiones asignadas
         asignado = set()
@@ -239,6 +271,76 @@ class Camiones(object):
             # las ganancias y el coste por peticiones no servidas no cambian al mover una peticion entre camiones
             return camiones_copy
 
+        # MoverAntes  
+        if isinstance(actions, MoverAntes):
+            cam_i = action.cam_i
+            pos_i = action.pos_i
+            pos_j = action.pos_j
+
+            # validamos~
+            if cam_i < 0 or cam_i >= len(camiones_copy.camiones):
+                return camiones_copy
+            camion = camiones_copy.camiones[cam_i]
+            if pos_i < 0 or pos_i >= len(camion.viajes):
+                return camiones_copy
+            if pos_j < 1 or pos_j >= pos_i:
+                # el obj debe estar antes que pos_i o antes que el centro inicial
+                return camiones_copy
+            if camion.viajes[pos_i][2] == -1:
+                return camiones_copy
+
+            # guardamos coste km antes 
+            coste_cam_ant = camiones.copy.coste_km_1camion(camion)
+
+            viaje = camion.viajes.pop(pos_i)
+            camion.viajes.insert(pos_j, viaje)
+
+            # recalculamos num_viajes y capacidad 
+            limpiar_centros_redundantes(camion, self.params)
+
+            # calculamos nuevo coste por km 
+            coste_cam_desp = camiones_copy.coste_km_1camion(camion)
+
+            camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
+            return camiones_copy
+            
+        # MoverDespues
+        if isinstance(action, MoverDespues):
+            cam_i = action.cam_i
+            pos_i = action.pos_i
+            pos_j = action.pos_j
+
+            # validaciones 
+            if cam_i < 0 or cam_i >= len(camiones_copy.camiones):
+                return camiones_copy
+            camion = camiones_copy.camiones[cam_i]
+            if pos_i < 0 or pos_i >= len(camion.viajes):
+                return camiones_copy
+            # pos_j should be within [1, len-1]
+            if pos_j < 1 or pos_j >= len(camion.viajes):
+                return camiones_copy
+            if camion.viajes[pos_i][2] == -1:
+                return camiones_copy
+
+            # guardamos coste km antes
+            coste_cam_ant = camiones_copy.coste_km_1camion(camion)
+
+            viaje = camion.viajes.pop(pos_i)
+            # ajustamos indices
+            insertar = pos_j if pos_j <= pos_i else pos_j
+            if pos_j > pos_i:
+                insertar = pos_j - 1
+            camion.viajes.insert(insertar, viaje)
+
+            # Recalcular num_viajes y capacidad; do not force volver_a_centro
+            limpiar_centros_redundantes(camion, self.params)
+
+            # calculamos nuevo coste por km
+            coste_cam_desp = camiones_copy.coste_km_1camion(camion)
+
+            camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
+            return camiones_copy
+        
         # AsignarPeticion
         if isinstance(action, AsignarPeticion):
             (gas_i, pet_i) = action.pet_i
