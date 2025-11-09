@@ -1,6 +1,6 @@
 from abia_Gasolina import *
 from Camion_parameters import ProblemParameters
-from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones
+from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones, EliminarPeticion
 
 from typing import Generator, List
 
@@ -176,8 +176,15 @@ class Camiones(object):
                         yield SwapPeticiones(ii, jj, cam_i, cam_j)
 
         # Eliminar Peticiones
+        for cam_i, camion in enumerate(self.camiones):
+            for viaje_i, viaje in enumerate(camion.viajes):
+                # la lista de viajes de cada camion como minimo tiene el centro de distribucion inicial
+                pet = viaje[2]
+                if pet == -1:
+                    continue
+                yield EliminarPeticion((cam_i, viaje_i), cam_i)
 
-        
+
 
     def apply_action(self, action: CamionOperators) -> 'Camiones':
         """
@@ -318,6 +325,35 @@ class Camiones(object):
             camiones_copy.mod_coste_km(cost_org_ant + cost_dest_ant, cost_org_desp + cost_dest_desp)
             # las ganancias y el coste por peticiones no servidas no cambian al intercambiar una peticion entre camiones
 
+            return camiones_copy
+        
+        # EliminarPeticion
+        if isinstance(action, EliminarPeticion):
+            cam_i, viaje_i = action.pet_i
+            camion = camiones_copy.camiones[action.cam_i]
+
+            # validamos índices
+            if viaje_i < 0 or viaje_i >= len(camion.viajes):
+                return camiones_copy
+            trip = camion.viajes[viaje_i]
+            if trip[2] == -1:
+                return camiones_copy
+
+            # antes de eliminar la peticion, guardamos el coste por km del camion
+            cost_cam_ant = camiones_copy.coste_km_1camion(camion)
+
+            # eliminamos la petición del camión
+            camion.viajes.pop(viaje_i)
+            limpiar_centros_redundantes(camion, self.params)
+
+            # calculamos el nuevo coste por km del camion
+            cost_cam_desp = camiones_copy.coste_km_1camion(camion)
+
+            # modificamos los valores de costes y ganancias de la nueva solución
+            camiones_copy.mod_coste_km(cost_cam_ant, cost_cam_desp)
+            camiones_copy.mod_ganancias(trip, "eliminar")
+            camiones_copy.mod_coste_petno(trip, "eliminar")
+        
             return camiones_copy
         
         return camiones_copy
