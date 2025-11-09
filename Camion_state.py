@@ -117,7 +117,7 @@ class Camiones(object):
             else:
                 # mover una posicion hacia delante (siempre que no sea la ult)
                 if viaje_i + 1 < len(camion.viajes):
-                    yield MoverDespues(cam_i, viaje_i, viaje_i + 1)
+                    yield MoverDespues(cam_i, viaje_i, viaje_i + 1, pos_obj)
                     
         # AsignarPeticion
         # primero construimos un set de peticiones asignadas
