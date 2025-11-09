@@ -87,7 +87,7 @@ class Camiones(object):
                 start_pos = max(1, viaje_i - MAX_ADVANCE)
                 for pos_obj in range(start_pos, viaje_i):
                     yield MoverAntes(cam_i, viaje_i, viaje_i, pos_obj)
-
+        
         # MoverDespues 
         for cam_i, camion in enumerate(self.camiones):
             indices = petitions_per_cam[cam_i]
@@ -103,7 +103,7 @@ class Camiones(object):
                 else:
                     if viaje_i + 1 < len(camion.viajes):
                         yield MoverDespues(cam_i, viaje_i, viaje_i, viaje_i + 1)
-
+        
         # AsignarPeticion (optimized: per-truck caching of metrics)
         asignado = set()
         for camion in self.camiones:
@@ -513,12 +513,12 @@ class Camiones(object):
     # definiremos como coste a las perdidas por dejar una peticion sin servir durante un día más
     def coste_petno_inicial(self) -> float:
         total_coste = 0
-        for camion in self.camiones:
-            for viaje in camion.viajes:
-                if viaje[2] == 0:
-                    total_coste += ((self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98))
-                elif viaje[2] > 0:
-                    total_coste += (self.params.valor_deposito * (1 - (2 ** viaje[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (viaje[2]+1)) / 100))
+        for gasolinera in gasolineras.gasolineras:
+            for peticion in gasolinera.peticiones:
+                if peticion == 0:
+                    total_coste += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
+                elif peticion > 0:
+                    total_coste += (self.params.valor_deposito * (1 - (2 ** peticion) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion+1)) / 100))
         self.coste_petno = total_coste
         return total_coste
 
@@ -540,7 +540,7 @@ class Camiones(object):
         return self.coste_petno
 
 ####################### Soluciones iniciales
-def generar_sol_inicial_vacio(params: ProblemParameters) -> Camiones:
+def generar_sol_inicial_vacia(params: ProblemParameters) -> Camiones:
     camiones = Camiones(params, [])
     # calculamos los valores iniciales
     camiones.coste_km_inicial()
