@@ -48,7 +48,7 @@ class MoverDespues(CamionOperators):
     def __repr__(self) -> str:
         return f"Mover la petición {self.pet_i} del camión {self.cam_i} de la posición {self.pos_i} a la posición {self.pos_j}"
 
-class EliminarPeticion(CamionOperators):
+class EliminarPeticiones(CamionOperators):
     def __init__(self, pet_i: tuple, cam_i: int):
         self.pet_i = pet_i
         self.cam_i = cam_i 

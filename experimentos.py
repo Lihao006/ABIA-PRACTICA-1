@@ -14,7 +14,7 @@ if __name__ == '__main__':
 	initial_state = generar_sol_inicial(params)
 	print('Solucion inicial generada.')
 	print(f"Heuristica inicial: {initial_state.heuristic()}")
-	print(f"Ganancias iniciales: {initial_state.ganancias_totales()}")
+	print(f"Ganancias iniciales: {initial_state.ganancias_actual()}")
 	print('Ejecutando Hill Climbing...')
 	hc_1 = hill_climbing(CamionesyPeticiones(initial_state))
 	print('Hill Climbing ejecutado.')
