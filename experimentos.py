@@ -8,14 +8,14 @@ from Camion_state import *
 if __name__ == '__main__':
 	# parametros por defecto
 	params = ProblemParameters()
+	print('Generando solucion inicial...')
 	initial_state = generar_sol_inicial(params)
-	hill1 = hill_climbing(CamionesyPeticiones(initial_state))
-	print(hill1)
-	print(hill1.heuristic())
-
-
-
-	# Suposant que la funció mesurar s'astar_search
-	# i volem fer una e x e c u c i :
-	hill1_t = timeit.timeit(lambda: hill_climbing(CamionesyPeticiones(initial_state)), number=1)
-	print(time) # Retorna temps en segons
+	print('Solucion inicial generada.')
+	print('Ejecutando Hill Climbing...')
+	hc_1 = hill_climbing(CamionesyPeticiones(initial_state))
+	print('Hill Climbing ejecutado.')
+	print(hc_1)
+	print(hc_1.heuristic())
+    # tiempo en segundos
+	hc_1_t = timeit.timeit(lambda: hill_climbing(CamionesyPeticiones(initial_state)), number=1)
+	print(hc_1_t)
