@@ -109,8 +109,11 @@ class Camiones(object):
                         yield MoverDespues(cam_i, viaje_i, viaje_i, viaje_i + 1)
         
         # AsignarPeticion
-        # creamos una lista de peticiones ya asignadas
-        
+        for pet in self.lista_pet_no_asig:
+            for camion in self.camiones:
+                assert camion.num_viajes <= self.params.max_viajes
+                
+
         # Creamos listas para guardar informacion temporal de cada camion
         num_cam = len(self.camiones)
         camion_distancia = [0.0] * num_cam
@@ -118,7 +121,9 @@ class Camiones(object):
         camion_ult_centro = [None] * num_cam
         camion_consec = [0] * num_cam
         camion_capacidad = [0] * num_cam
-        for i, camion in enumerate(self.camiones):
+        
+    
+        for camion in self.camiones:
             camion_distancia[i] = camion.km_recorridos
             camion_ult_pos[i] = (camion.viajes[-1][0], camion.viajes[-1][1])
             camion_capacidad[i] = camion.capacidad
@@ -583,7 +588,7 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
             
             # si el camion ha llegado al máximo de viajes, no hace falta calcular distancias
             # podemos estar seguros de que si el camion no puede hacer más viajes, ya está en el centro
-            if camion.num_viajes == params.max_viajes:
+            if camion.num_viajes == params.max_viajes or camion.km_recorridos == params.max_km:
                 # pasamos al siguiente camion
                 c += 1
                 # comprobamos que no nos salgamos del rango de camiones
