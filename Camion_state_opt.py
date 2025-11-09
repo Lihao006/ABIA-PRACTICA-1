@@ -469,7 +469,7 @@ class Camiones(object):
                 elif viaje[2] > 0:
                     total_ganancias += 1000 * (1 - (2 ** viaje[2]) / 100)
         self.ganancias = total_ganancias
-        return total_ganancias
+        return self.ganancias
 
     # modifica las ganancias a partir de las ganancias actuales
     # la única manera de variar las ganancias es asignando o quitando peticiones
@@ -494,7 +494,7 @@ class Camiones(object):
         for camion in self.camiones:
             total_coste += calcular_distancia_camion(camion) * self.params.coste_km_max
         self.coste_km = total_coste
-        return total_coste
+        return self.coste_km
 
     # el coste por km se modifica cuando se altera la lista de viajes de un camion, 
     # ya sea añadiendo, eliminando o moviendo peticiones. Solo necesitamos saber el camion modificado
@@ -511,16 +511,28 @@ class Camiones(object):
 
     # coste de las peticiones no servidas en la solucion inicial
     # definiremos como coste a las perdidas por dejar una peticion sin servir durante un día más
+    # necesitamos saber que peticiones se han asignado y cuales no
     def coste_petno_inicial(self) -> float:
-        total_coste = 0
+        coste_peticiones = 0
+        lista_peticiones = []
+        # primero creamos una lista con todas las peticiones
         for gasolinera in gasolineras.gasolineras:
             for peticion in gasolinera.peticiones:
-                if peticion == 0:
-                    total_coste += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
-                elif peticion > 0:
-                    total_coste += (self.params.valor_deposito * (1 - (2 ** peticion) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion+1)) / 100))
-        self.coste_petno = total_coste
-        return total_coste
+                lista_peticiones.append((gasolinera.cx, gasolinera.cy, peticion))
+        # quitamos de la lista las peticiones que ya han sido asignadas
+        # al final lo que queda en la lista son las peticiones no servidas
+        for camion in self.camiones:
+            for viaje in camion.viajes:
+                if viaje in lista_peticiones:
+                    lista_peticiones.remove(viaje)
+        
+        for peticion in lista_peticiones:
+            if peticion[2] == 0:
+                coste_max += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
+            elif peticion[2] > 0:
+                coste_max += (self.params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
+        self.coste_petno = coste_peticiones
+        return self.coste_petno
 
     # la única manera de modificar el coste de peticiones no servidas es asignando o eliminando peticiones
     # por tanto solo necesitamos saber la peticion asignada o eliminada
