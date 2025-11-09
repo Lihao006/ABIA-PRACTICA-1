@@ -7,10 +7,14 @@ from Camion_state import *
 
 if __name__ == '__main__':
 	# parametros por defecto
+	# ponemos prints en medio para saber en que paso estamos
 	params = ProblemParameters()
+	# con la solucion inicial que consideramos adecuada
 	print('Generando solucion inicial...')
 	initial_state = generar_sol_inicial(params)
 	print('Solucion inicial generada.')
+	print(f"Heuristica inicial: {initial_state.heuristic()}")
+	print(f"Ganancias iniciales: {initial_state.ganancias_totales()}")
 	print('Ejecutando Hill Climbing...')
 	hc_1 = hill_climbing(CamionesyPeticiones(initial_state))
 	print('Hill Climbing ejecutado.')
@@ -18,4 +22,5 @@ if __name__ == '__main__':
 	print(hc_1.heuristic())
     # tiempo en segundos
 	hc_1_t = timeit.timeit(lambda: hill_climbing(CamionesyPeticiones(initial_state)), number=1)
+	print('Tiempo de ejecucion Hill Climbing:')
 	print(hc_1_t)
