@@ -14,7 +14,7 @@ class Camion(object):
     def __init__(self, viajes: List[tuple]):
         self.capacidad = params.capacidad_maxima
         self.num_viajes = 0
-        self.km_recorridos = 0
+        self.km_recorridos = 0.0
 
         self.viajes = viajes
         # Lista de ubicaciones de gasolineras asignadas y centros de distribucion que debe pasar
@@ -104,7 +104,8 @@ class Camiones(object):
                     if viaje_i + 1 < len(camion.viajes):
                         yield MoverDespues(cam_i, viaje_i, viaje_i, viaje_i + 1)
         
-        # AsignarPeticion (optimized: per-truck caching of metrics)
+        # AsignarPeticion
+        # creamos un set de peticiones ya asignadas
         asignado = set()
         for camion in self.camiones:
             for viaje in camion.viajes:
@@ -113,13 +114,13 @@ class Camiones(object):
 
         num_cam = len(self.camiones)
         camion_distancia = [0.0] * num_cam
-        camion_last_pos = [None] * num_cam
+        camion_ult_pos = [None] * num_cam
         camion_ult_centro = [None] * num_cam
         camion_consec = [0] * num_cam
         camion_capacidad = [0] * num_cam
         for i, camion in enumerate(self.camiones):
             camion_distancia[i] = calcular_distancia_camion(camion)
-            camion_last_pos[i] = (camion.viajes[-1][0], camion.viajes[-1][1])
+            camion_ult_pos[i] = (camion.viajes[-1][0], camion.viajes[-1][1])
             camion_capacidad[i] = camion.capacidad
             ult = None
             for x in range(len(camion.viajes)-1, -1, -1):
@@ -145,9 +146,9 @@ class Camiones(object):
                     if camion_consec[cam_i] + 1 > self.params.capacidad_maxima:
                         continue
                     distancia_actual = camion_distancia[cam_i]
-                    last_pos = camion_last_pos[cam_i]
+                    ult_pos = camion_ult_pos[cam_i]
                     # inline simple L1 distance calculations to avoid extra function overhead
-                    distancia_gasolinera = abs(last_pos[0] - g.cx) + abs(last_pos[1] - g.cy)
+                    distancia_gasolinera = abs(ult_pos[0] - g.cx) + abs(ult_pos[1] - g.cy)
                     centro = self.camiones[cam_i].viajes[0]
                     distancia_vuelta = abs(g.cx - centro[0]) + abs(g.cy - centro[1])
                     distancia_total = distancia_actual + distancia_gasolinera + distancia_vuelta
@@ -500,7 +501,7 @@ class Camiones(object):
     # ya sea añadiendo, eliminando o moviendo peticiones. Solo necesitamos saber el camion modificado
     # necesitamos la distancia anterior y la nueva distancia de este camion
     def coste_km_1camion(self, camion: Camion) -> float:
-        return calcular_distancia_camion(camion) * self.params.coste_km_max
+        return camion.km_recorridos * self.params.coste_km_max
 
     # restamos el coste anterior de ese camion y sumamos el nuevo coste
     def mod_coste_km(self, coste_cam_ant: float, cost_cam_nue: float) -> float:
@@ -526,6 +527,7 @@ class Camiones(object):
                 if viaje in lista_peticiones:
                     lista_peticiones.remove(viaje)
         
+        # de las que no estan servidas, calculamos el coste
         for peticion in lista_peticiones:
             if peticion[2] == 0:
                 coste_peticiones += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
@@ -716,6 +718,7 @@ def calcular_distancia_camion(camion: Camion) -> float:
     total_distance = 0
     for i in range(1, len(camion.viajes)):
         total_distance += distancia(camion.viajes[i-1][:2], camion.viajes[i][:2])
+    camion.km_recorridos = total_distance
     return total_distance
 
 # dist L1
