@@ -105,8 +105,10 @@ class Camiones(object):
                 if camion.viajes[ind][2] != -1:
                     primer_pet_ind = ind
                     break
-                if viaje_i + 1 < len(camion.viajes):
-                    yield MoverDespues(cam_i, viaje_i, viaje_i + 1, pos_obj)
+            for viaje_i, viaje in enumerate(camion.viajes):
+                if viaje[2] == -1:
+                    continue
+                # si es la primera peticion, generamos el operador que lo manda a la ultima posicion
                 if viaje_i == primer_pet_ind:
                     pos_obj = len(camion.viajes) - 1
                     # nos aseguramos que no está ya en la ultima posicion
@@ -114,6 +116,8 @@ class Camiones(object):
                         yield MoverDespues(cam_i, viaje_i, viaje_i, pos_obj)
                 else:
                     # mover una posicion hacia delante (siempre que no sea la ult)
+                    if viaje_i + 1 < len(camion.viajes):
+                        yield MoverDespues(cam_i, viaje_i, viaje_i, viaje_i + 1)
                     
         # AsignarPeticion
         # primero construimos un set de peticiones asignadas
@@ -273,7 +277,7 @@ class Camiones(object):
             pos_i = action.pos_i
             pos_j = action.pos_j
 
-            # validamos~
+            # validamos
             if cam_i < 0 or cam_i >= len(camiones_copy.camiones):
                 return camiones_copy
             camion = camiones_copy.camiones[cam_i]
@@ -512,7 +516,7 @@ class Camiones(object):
 
     # restamos el coste anterior de ese camion y sumamos el nuevo coste
     def mod_coste_km(self, cost_cam_ant: float, cost_cam_nue: float) -> float:
-        self.coste_km -= cost_cam_ant + cost_cam_nue
+        self.coste_km = self.coste_km - cost_cam_ant + cost_cam_nue
         return self.coste_km
 
     # coste de las peticiones no servidas en la solucion inicial
