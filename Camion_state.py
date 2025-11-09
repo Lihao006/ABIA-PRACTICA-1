@@ -272,7 +272,7 @@ class Camiones(object):
             return camiones_copy
 
         # MoverAntes  
-        if isinstance(actions, MoverAntes):
+        if isinstance(action, MoverAntes):
             cam_i = action.cam_i
             pos_i = action.pos_i
             pos_j = action.pos_j
@@ -290,7 +290,7 @@ class Camiones(object):
                 return camiones_copy
 
             # guardamos coste km antes 
-            coste_cam_ant = camiones.copy.coste_km_1camion(camion)
+            coste_cam_ant = camiones_copy.coste_km_1camion(camion)
 
             viaje = camion.viajes.pop(pos_i)
             camion.viajes.insert(pos_j, viaje)

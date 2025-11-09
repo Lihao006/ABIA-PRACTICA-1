@@ -30,7 +30,7 @@ class SwapPeticiones(CamionOperators):
 
 class MoverAntes(CamionOperators):
     def __init__(self, pet_i: tuple, pos_i: int, pos_j: int, cam_i: int):
-        self.cam_i = cam_I
+        self.cam_i = cam_i
         self.pet_i = pet_i
         self.pos_i = pos_i
         self.pos_j = pos_j
