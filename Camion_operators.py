@@ -29,13 +29,24 @@ class SwapPeticiones(CamionOperators):
         return f"Intercambiar la petición {self.pet_i} del camión {self.cam_i} por la petición {self.pet_j} del camión {self.cam_j}"
 
 class MoverAntes(CamionOperators):
-    def __init__(self, pet_i: tuple, pos_i: int, pos_j: int):
+    def __init__(self, pet_i: tuple, pos_i: int, pos_j: int, cam_i: int):
+        self.cam_i = cam_I
         self.pet_i = pet_i
         self.pos_i = pos_i
         self.pos_j = pos_j
 
     def __repr__(self) -> str:
-        return f"Mover la petición {self.pet_i} de la posición {self.pos_i} a la posición {self.pos_j}"
+        return f"Mover la petición {self.pet_i} del camión {self.cam_i} de la posición {self.pos_i} a la posición {self.pos_j}"
+        
+class MoverDespues(CamionOperators):
+    def __init__(self, cam_i: int, pet_i: int, pos_i: int, pos_j: int):
+        self.cam_i = cam_i
+        self.pet_i = pet_i
+        self.pos_i = pos_i
+        self.pos_j = pos_j
+
+    def __repr__(self) -> str:
+        return f"Mover la petición {self.pet_i} del camión {self.cam_i} de la posición {self.pos_i} a la posición {self.pos_j}"
 
 class EliminarPeticion(CamionOperators):
     def __init__(self, pet_i: tuple, cam_i: int):
