@@ -37,9 +37,11 @@ class Camion(object):
             return nuevo
 
 class Camiones(object):
-    def __init__(self, params: ProblemParameters, camiones: List[Camion], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0):
+    def __init__(self, params: ProblemParameters, camiones: List[Camion], lista_pet_asig: List[tuple] = [], lista_pet_no_asig: List[tuple] = [], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0):
         self.params = params
         self.camiones = camiones
+        self.lista_pet_asig = lista_pet_asig
+        self.lista_pet_no_asig = lista_pet_no_asig
         self.ganancias = ganancias
         self.coste_km = coste_km
         self.coste_petno = coste_petno
@@ -54,7 +56,9 @@ class Camiones(object):
     def copy(self) -> 'Camiones':
         # Afegim el copy per cada llista de camions
         camiones_copy = [camion.copy() for camion in self.camiones]
-        return Camiones(self.params, camiones_copy, self.ganancias, self.coste_km, self.coste_petno)
+        lista_pet_asig_copy = [tuple(pet) for pet in self.lista_pet_asig]
+        lista_pet_no_asig_copy = [tuple(pet) for pet in self.lista_pet_no_asig]
+        return Camiones(self.params, camiones_copy, lista_pet_asig_copy, lista_pet_no_asig_copy, self.ganancias, self.coste_km, self.coste_petno)
 
     def generate_actions(self) -> Generator[CamionOperators, None, None]:
         """
@@ -77,7 +81,7 @@ class Camiones(object):
                     yield MoverPeticion((cam_i, viaje_i), cam_i, cam_j)
 
         # MoverAntes 
-        # Limitamos el avance máximo para reducir branching (optimización)
+        # Limitamos el avance máximo para reducir branching (optimizacion)
         MAX_ADVANCE = 10
         for cam_i, camion in enumerate(self.camiones):
             indices = petitions_per_cam[cam_i]
@@ -95,7 +99,7 @@ class Camiones(object):
                 continue
             primer_pet_ind = indices[0]
             for viaje_i in indices:
-                # si es la primera petición, generamos operador que la manda a la última posición
+                # si es la primera peticion, generamos operador que la manda a la ultima posicion
                 if viaje_i == primer_pet_ind:
                     pos_obj = len(camion.viajes) - 1
                     if viaje_i < pos_obj:
@@ -106,13 +110,8 @@ class Camiones(object):
         
         # AsignarPeticion
         # creamos una lista de peticiones ya asignadas
-        asignado = []
-        for camion in self.camiones:
-            for viaje in camion.viajes:
-                if viaje[2] != -1:
-                    asignado.append((viaje))
-
-        # Creamos listas para guardar información temporal de cada camión
+        
+        # Creamos listas para guardar informacion temporal de cada camion
         num_cam = len(self.camiones)
         camion_distancia = [0.0] * num_cam
         camion_ult_pos = [None] * num_cam
@@ -169,7 +168,7 @@ class Camiones(object):
                 for ii in ind_i:
                     for jj in ind_j:
                         # aseguramos las restricciones de la cisterna después del swap
-                        #  calculamos peticiones consecutivas desde el último centro
+                        #  calculamos peticiones consecutivas desde el ultimo centro
                         def desp_swap(cam, eliminar_ind, añadir_viaje):
                             # construimos una lista de viajes después de eliminar el indice y añadir el viaje
                             viajes = cam.viajes.copy()
@@ -177,7 +176,7 @@ class Camiones(object):
                             viajes.pop(eliminar_ind)
                             # añadimos el viaje
                             viajes.append(añadir_viaje)
-                            # encontramos el último centro
+                            # encontramos el ultimo centro
                             ult_centro = None
                             for x in range(len(viajes)-1, -1, -1):
                                 if viajes[x][2] == -1:
@@ -234,10 +233,10 @@ class Camiones(object):
             cost_org_ant = camiones_copy.coste_km_1camion(org)
             cost_dest_ant = camiones_copy.coste_km_1camion(dest)
             
-            # eliminamos del camión origen
+            # eliminamos del camion origen
             org.viajes.pop(viaje_i)
 
-            # añadimos al camión destino
+            # añadimos al camion destino
             dest.viajes.append(trip)
             # Recalcular estado para ambos camiones
             limpiar_centros_redundantes(org, self.params)
@@ -252,12 +251,12 @@ class Camiones(object):
             cost_org_desp = camiones_copy.coste_km_1camion(org)
             cost_dest_desp = camiones_copy.coste_km_1camion(dest)
 
-            # modificamos los valores de costes y ganancias de la nueva solución
+            # modificamos los valores de costes y ganancias de la nueva solucion
             camiones_copy.mod_coste_km(cost_org_ant + cost_dest_ant, cost_org_desp + cost_dest_desp)
             # las ganancias y el coste por peticiones no servidas no cambian al mover una peticion entre camiones
             return camiones_copy
 
-        # MoverAntes: adelantar una petición dentro del mismo camión (no añade viajes)
+        # MoverAntes: adelantar una peticion dentro del mismo camion (no añade viajes)
         if isinstance(action, MoverAntes):
             cam_i = action.cam_i
             pos_i = action.pos_i
@@ -291,21 +290,14 @@ class Camiones(object):
             # no cambiamos ganancias ni coste por peticiones no servidas
             return camiones_copy
 
-        # MoverDespues: retrasar una petición dentro del mismo camión (no añade viajes)
+        # MoverDespues: retrasar una peticion dentro del mismo camion (no añade viajes)
         if isinstance(action, MoverDespues):
             cam_i = action.cam_i
             pos_i = action.pos_i
             pos_j = action.pos_j
 
-            # validaciones básicas
-            if cam_i < 0 or cam_i >= len(camiones_copy.camiones):
-                return camiones_copy
             camion = camiones_copy.camiones[cam_i]
-            if pos_i < 0 or pos_i >= len(camion.viajes):
-                return camiones_copy
-            # pos_j should be within [1, len-1]
-            if pos_j < 1 or pos_j >= len(camion.viajes):
-                return camiones_copy
+            
             if camion.viajes[pos_i][2] == -1:
                 return camiones_copy
 
@@ -332,16 +324,9 @@ class Camiones(object):
         # AsignarPeticion
         if isinstance(action, AsignarPeticion):
             (gas_i, pet_i) = action.pet_i
+            # Condicion: que la peticion sea existente
+            assert gas_i < len(gasolineras.gasolineras) and pet_i < len(gasolineras.gasolineras[gas_i].peticiones)
             camion = camiones_copy.camiones[action.cam_i]
-
-            # validación 
-            if camion.capacidad <= 0:
-                return camiones_copy
-            if gas_i < 0 or gas_i >= len(gasolineras.gasolineras):
-                return camiones_copy
-            gas = gasolineras.gasolineras[gas_i]
-            if pet_i < 0 or pet_i >= len(gas.peticiones):
-                return camiones_copy
 
             # antes de asignar la peticion, guardamos el coste por km del camion
             coste_cam_ant = camiones_copy.coste_km_1camion(camion)
@@ -350,14 +335,18 @@ class Camiones(object):
             # añadir viaje
             camion.viajes.append((gas.cx, gas.cy, pet))
             limpiar_centros_redundantes(camion, self.params)
-            # si la capacidad llega a 0, devolvemos el camión al centro
+            # si la capacidad llega a 0, devolvemos el camion al centro
             if camion.capacidad == 0:
                 volver_a_centro(camion)
 
             # calculamos el nuevo coste por km del camion
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
-            
-            # modificamos los valores de costes y ganancias de la nueva solución
+
+            # modificamos las listas de peticiones asignadas y no asignadas
+            camiones_copy.lista_pet_asig.append((gas.cx, gas.cy, pet))
+            camiones_copy.lista_pet_no_asig.remove((gas.cx, gas.cy, pet))
+
+            # modificamos los valores de costes y ganancias de la nueva solucion
             camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
             camiones_copy.mod_ganancias((gas.cx, gas.cy, pet), "asignar")
             camiones_copy.mod_coste_petno((gas.cx, gas.cy, pet), "asignar")
@@ -401,7 +390,7 @@ class Camiones(object):
             limpiar_centros_redundantes(org, self.params)
             limpiar_centros_redundantes(dest, self.params)
 
-            # si alguna capacidad queda a 0 tras la recalculación, enviarlo al centro
+            # si alguna capacidad queda a 0 tras la recalculacion, enviarlo al centro
             if org.capacidad == 0:
                 volver_a_centro(org)
             if dest.capacidad == 0:
@@ -411,7 +400,7 @@ class Camiones(object):
             cost_org_desp = camiones_copy.coste_km_1camion(org)
             cost_dest_desp = camiones_copy.coste_km_1camion(dest)
 
-            # modificamos los valores de costes y ganancias de la nueva solución
+            # modificamos los valores de costes y ganancias de la nueva solucion
             camiones_copy.mod_coste_km(cost_org_ant + cost_dest_ant, cost_org_desp + cost_dest_desp)
             # las ganancias y el coste por peticiones no servidas no cambian al intercambiar una peticion entre camiones
 
@@ -432,14 +421,17 @@ class Camiones(object):
             # antes de eliminar la peticion, guardamos el coste por km del camion
             coste_cam_ant = camiones_copy.coste_km_1camion(camion)
 
-            # eliminamos la petición del camión
+            # eliminamos la peticion del camion
             camion.viajes.pop(viaje_i)
             limpiar_centros_redundantes(camion, self.params)
 
             # calculamos el nuevo coste por km del camion
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
-
-            # modificamos los valores de costes y ganancias de la nueva solución
+            
+            # modificamos la lista de peticiones asignadas y no asignadas
+            camiones_copy.lista_pet_asig.remove(trip)
+            camiones_copy.lista_pet_no_asig.append(trip)
+            # modificamos los valores de costes y ganancias de la nueva solucion
             camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
             camiones_copy.mod_ganancias(trip, "eliminar")
             camiones_copy.mod_coste_petno(trip, "eliminar")
@@ -464,17 +456,16 @@ class Camiones(object):
     # solo se llama una vez, para modificar las ganancias se usa otra funcion de menor coste computacional
     def ganancias_inicial(self) -> float:
         total_ganancias = 0
-        for camion in self.camiones:
-            for viaje in camion.viajes:
-                if viaje[2] == 0:
-                    total_ganancias += 1000 * 1.02
-                elif viaje[2] > 0:
-                    total_ganancias += 1000 * (1 - (2 ** viaje[2]) / 100)
+        for peticion in self.lista_pet_asig:
+            if peticion[2] == 0:
+                total_ganancias += 1000 * 1.02
+            elif peticion[2] > 0:
+                total_ganancias += 1000 * (1 - (2 ** peticion[2]) / 100)
         self.ganancias = total_ganancias
         return self.ganancias
 
     # modifica las ganancias a partir de las ganancias actuales
-    # la única manera de variar las ganancias es asignando o quitando peticiones
+    # la unica manera de variar las ganancias es asignando o quitando peticiones
     # por tanto las ganancias solo dependen de las peticiones, no hace nos hace falta saber el camion
     # para saber si se asigna o elimina una peticion pondremos un string operacion
     def mod_ganancias(self, peticion: tuple, operacion: str) -> float:
@@ -515,29 +506,17 @@ class Camiones(object):
     # definiremos como coste a las perdidas por dejar una peticion sin servir durante un día más
     # necesitamos saber que peticiones se han asignado y cuales no
     def coste_petno_inicial(self) -> float:
-        coste_peticiones = 0
-        lista_peticiones = []
-        # primero creamos una lista con todas las peticiones
-        for gasolinera in gasolineras.gasolineras:
-            for peticion in gasolinera.peticiones:
-                lista_peticiones.append((gasolinera.cx, gasolinera.cy, peticion))
-        # quitamos de la lista las peticiones que ya han sido asignadas
-        # al final lo que queda en la lista son las peticiones no servidas
-        for camion in self.camiones:
-            for viaje in camion.viajes:
-                if viaje in lista_peticiones:
-                    lista_peticiones.remove(viaje)
-        
+        coste = 0
         # de las que no estan servidas, calculamos el coste
-        for peticion in lista_peticiones:
+        for peticion in self.lista_pet_no_asig:
             if peticion[2] == 0:
-                coste_peticiones += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
+                coste += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
             elif peticion[2] > 0:
-                coste_peticiones += (self.params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
-        self.coste_petno = coste_peticiones
+                coste += (self.params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
+        self.coste_petno = coste
         return self.coste_petno
 
-    # la única manera de modificar el coste de peticiones no servidas es asignando o eliminando peticiones
+    # la unica manera de modificar el coste de peticiones no servidas es asignando o eliminando peticiones
     # por tanto solo necesitamos saber la peticion asignada o eliminada
     # si se asigna una peticion, el coste disminuye
     # si se elimina una peticion, el coste aumenta
@@ -554,9 +533,33 @@ class Camiones(object):
                 self.coste_petno += (self.params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
         return self.coste_petno
 
+
+    # tambien necesitamos la lista de peticiones inicialmente asignadas
+    def lista_pet_asig_inicial(self) -> List[tuple]:
+        lista_asig = []
+        for camion in self.camiones:
+            for viaje in camion.viajes:
+                if viaje[2] != -1:
+                    lista_asig.append((viaje))
+        self.lista_pet_asig = lista_asig
+        return self.lista_pet_asig
+
+    # y la lista de peticiones no asignadas
+    def lista_pet_no_asig_inicial(self) -> List[tuple]:
+        lista_no_asig = []
+        for gasolinera in gasolineras.gasolineras:
+            for peticion in gasolinera.peticiones:
+                if peticion not in self.lista_pet_asig:
+                    lista_no_asig.append((gasolinera.cx, gasolinera.cy, peticion))
+        self.lista_pet_no_asig = lista_no_asig
+        return self.lista_pet_no_asig
+    
+
 ####################### Soluciones iniciales
 def generar_sol_inicial_vacia(params: ProblemParameters) -> Camiones:
     camiones = Camiones(params, [])
+    # solo hace falta calc la lista de pet no asignadas
+    camiones.lista_pet_no_asig_inicial()
     # calculamos los valores iniciales
     camiones.coste_km_inicial()
     camiones.ganancias_inicial()
@@ -594,7 +597,7 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
                 # distancia acumulada del camion hasta el momento
                 distancia_camion = calcular_distancia_camion(camion)
                 
-                # distancia desde la última posicion del camion hasta la gasolinera
+                # distancia desde la ultima posicion del camion hasta la gasolinera
                 distancia_gasolinera = distancia((camion.viajes[-1][0], camion.viajes[-1][1]), (x, y))
                 
                 # también calculamos la distancia de la gasolinera hasta el centro de distribucion porque el camion debe poder 
@@ -616,13 +619,17 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
             camiones.camiones[c].viajes.append((x, y, gasolineras.gasolineras[g].peticiones[p]))
             camion.capacidad -= 1
 
-            # miramos que un camion no vaya a una gasolinera con el deposito vacío y que aún pueda hacer más viajes
+            # miramos que un camion no vaya a una gasolinera con el deposito vacío y que aun pueda hacer más viajes
             # ya habremos comprobado que el camion puede volver al centro sin sobrepasar el máximo de km
             if camion.capacidad == 0:
                 volver_a_centro(camion)
         
         # pasamos a la siguiente gasolinera
         g += 1
+
+    # calc la lista de peticiones asignadas y no asignadas
+    camiones.lista_pet_asig_inicial()
+    camiones.lista_pet_no_asig_inicial()
     
     # calculamos los valores iniciales
     camiones.coste_km_inicial()
@@ -641,7 +648,7 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
         for p in range(len(gasolineras.gasolineras[g].peticiones)):
             peticiones.append((gasolineras.gasolineras[g].peticiones[p], g))
 
-    # ordenamos las peticiones de mayor a menor número de días de retraso, excepto las de 0 días, que iran al principio
+    # ordenamos las peticiones de mayor a menor numero de días de retraso, excepto las de 0 días, que iran al principio
     # los FALSE se ordenan antes que los TRUE en la funcion sort(), luego la parte de TRUE se ordena de mayor a menor
     peticiones.sort(key=lambda x: (x[0] != 0, -x[0]))
 
@@ -660,7 +667,7 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
         # servir al menos 2 peticiones sin problemas, porque necesitamos buscar el camion más cercano
         for camion in camiones.camiones:
           
-            # Las distancias hasta la gasolinera se calculan con el penúltimo elemento de la lista de viajes
+            # Las distancias hasta la gasolinera se calculan con el penultimo elemento de la lista de viajes
             # comprobamos si puede hacer más viajes y tiene capacidad
             # Igual que antes, comprobamos que el camion pueda volver al centro en cualquier momento
             if camion.num_viajes < params.max_viajes:
@@ -683,7 +690,7 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
             camion_seleccionado.viajes.append((x, y, peticion))
             camion_seleccionado.capacidad -= 1
 
-            # miramos que un camion no vaya a una gasolinera con el deposito vacío y que aún pueda hacer más viajes
+            # miramos que un camion no vaya a una gasolinera con el deposito vacío y que aun pueda hacer más viajes
             if camion_seleccionado.capacidad == 0:
                 volver_a_centro(camion_seleccionado)
     
@@ -692,6 +699,10 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
     for camion in camiones.camiones:
         if camion.viajes[-1][2] != -1:
             volver_a_centro(camion)
+
+    # calc la lista de peticiones asignadas y no asignadas
+    camiones.lista_pet_asig_inicial()
+    camiones.lista_pet_no_asig_inicial()
     
     # calculamos los valores iniciales
     camiones.coste_km_inicial()
@@ -730,13 +741,13 @@ def distancia(p1: tuple, p2: tuple) -> float:
 def limpiar_centros_redundantes(camion: Camion, params: ProblemParameters) -> None:
     # eliminar centros finales redundantes (si no hay peticiones después del centro anterior)
     while camion.viajes and camion.viajes[-1][2] == -1:
-        # buscar penúltimo centro
+        # buscar penultimo centro
         penult = None
         for x in range(len(camion.viajes)-2, -1, -1):
             if camion.viajes[x][2] == -1:
                 penult = x
                 break
-        # comprobar si hay peticiones entre penult+1 y el penúltimo elemento (excluyendo último centro)
+        # comprobar si hay peticiones entre penult+1 y el penultimo elemento (excluyendo ultimo centro)
         start = penult + 1 if penult is not None else 0
         hay_peticiones = any(v[2] != -1 for v in camion.viajes[start:len(camion.viajes)-1])
         if not hay_peticiones:
@@ -744,11 +755,11 @@ def limpiar_centros_redundantes(camion: Camion, params: ProblemParameters) -> No
         else:
             break
 
-    # Recalcular num_viajes: número de retornos al centro (excluyendo centro inicial)
+    # Recalcular num_viajes: numero de retornos al centro (excluyendo centro inicial)
     total_centros = sum(1 for v in camion.viajes if v[2] == -1)
     camion.num_viajes = max(0, total_centros - 1)
 
-    # Recalcular capacidad según peticiones consecutivas desde el último centro
+    # Recalcular capacidad segun peticiones consecutivas desde el ultimo centro
     ult_centro = None
     for id in range(len(camion.viajes)-1, -1, -1):
         if camion.viajes[id][2] == -1:
