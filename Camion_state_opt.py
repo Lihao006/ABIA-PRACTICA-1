@@ -528,9 +528,9 @@ class Camiones(object):
         
         for peticion in lista_peticiones:
             if peticion[2] == 0:
-                coste_max += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
+                coste_peticiones += (self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98)
             elif peticion[2] > 0:
-                coste_max += (self.params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
+                coste_peticiones += (self.params.valor_deposito * (1 - (2 ** peticion[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (peticion[2]+1)) / 100))
         self.coste_petno = coste_peticiones
         return self.coste_petno
 
