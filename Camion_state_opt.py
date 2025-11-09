@@ -105,13 +105,14 @@ class Camiones(object):
                         yield MoverDespues(cam_i, viaje_i, viaje_i, viaje_i + 1)
         
         # AsignarPeticion
-        # creamos un set de peticiones ya asignadas
-        asignado = set()
+        # creamos una lista de peticiones ya asignadas
+        asignado = []
         for camion in self.camiones:
             for viaje in camion.viajes:
                 if viaje[2] != -1:
-                    asignado.add((viaje[0], viaje[1], viaje[2]))
+                    asignado.append((viaje))
 
+        # Creamos listas para guardar información temporal de cada camión
         num_cam = len(self.camiones)
         camion_distancia = [0.0] * num_cam
         camion_ult_pos = [None] * num_cam
@@ -119,7 +120,7 @@ class Camiones(object):
         camion_consec = [0] * num_cam
         camion_capacidad = [0] * num_cam
         for i, camion in enumerate(self.camiones):
-            camion_distancia[i] = calcular_distancia_camion(camion)
+            camion_distancia[i] = camion.km_recorridos
             camion_ult_pos[i] = (camion.viajes[-1][0], camion.viajes[-1][1])
             camion_capacidad[i] = camion.capacidad
             ult = None
@@ -148,9 +149,9 @@ class Camiones(object):
                     distancia_actual = camion_distancia[cam_i]
                     ult_pos = camion_ult_pos[cam_i]
                     # inline simple L1 distance calculations to avoid extra function overhead
-                    distancia_gasolinera = abs(ult_pos[0] - g.cx) + abs(ult_pos[1] - g.cy)
+                    distancia_gasolinera = distancia(ult_pos, (g.cx, g.cy))
                     centro = self.camiones[cam_i].viajes[0]
-                    distancia_vuelta = abs(g.cx - centro[0]) + abs(g.cy - centro[1])
+                    distancia_vuelta = distancia((g.cx, g.cy), centro)
                     distancia_total = distancia_actual + distancia_gasolinera + distancia_vuelta
                     if distancia_total > self.params.max_km:
                         continue
@@ -748,7 +749,7 @@ def limpiar_centros_redundantes(camion: Camion, params: ProblemParameters) -> No
     camion.num_viajes = max(0, total_centros - 1)
 
     # Recalcular capacidad según peticiones consecutivas desde el último centro
-    last_center = None
+    ult_centro = None
     for id in range(len(camion.viajes)-1, -1, -1):
         if camion.viajes[id][2] == -1:
             ult_centro = id
