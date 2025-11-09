@@ -37,7 +37,7 @@ class Camion(object):
             return nuevo
 
 class Camiones(object):
-    def __init__(self, params: ProblemParameters, camiones: List[Camion], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0):
+    def __init__(self, params: ProblemParameters, camiones: List[Camion], ganancias: float = -float('inf'), coste_km: float = -float('inf'), coste_petno: float = -float('inf')):
         self.params = params
         self.camiones = camiones
         self.ganancias = ganancias
@@ -50,6 +50,15 @@ class Camiones(object):
                 camion = Camion([(centros.centros[c].cx, centros.centros[c].cy, -1)])
                 for _ in range(params.multiplicidad):
                     self.camiones.append(camion)
+        
+        # si no nos da los valores de ganancias y costes, asumiremos que es porque estamos en la solucion inicial
+        # por tanto debemos calcular los valores iniciales
+        if self.ganancias == -float('inf'):
+            self.ganancias = self.ganancias_inicial()
+        if self.coste_km == -float('inf'):
+            self.coste_km = self.coste_km_inicial()
+        if self.coste_petno == -float('inf'):
+            self.coste_petno = self.coste_petno_inicial()
 
     def copy(self) -> 'Camiones':
         # Afegim el copy per cada llista de camions
@@ -415,7 +424,7 @@ class Camiones(object):
 
             return camiones_copy
         
-        # EliminarPeticiones
+        # EliminarPeticion
         if isinstance(action, EliminarPeticiones):
             cam_i, viaje_i = action.pet_i
             camion = camiones_copy.camiones[action.cam_i]
@@ -445,16 +454,7 @@ class Camiones(object):
             return camiones_copy
 
         return camiones_copy
-    
-    def ganancias_actual(self) -> float:
-        return self.ganancias
-    
-    def coste_km_actual(self) -> float:
-        return self.coste_km
 
-    def coste_petno_actual(self) -> float:
-        return self.coste_petno
-    
     def heuristic(self) -> float:
         return self.ganancias - self.coste_km - self.coste_petno
 
@@ -468,7 +468,6 @@ class Camiones(object):
                     total_ganancias += 1000 * 1.02
                 elif viaje[2] > 0:
                     total_ganancias += 1000 * (1 - (2 ** viaje[2]) / 100)
-        self.ganancias = total_ganancias
         return total_ganancias
 
     # modifica las ganancias a partir de las ganancias actuales
@@ -493,7 +492,6 @@ class Camiones(object):
         total_coste = 0
         for camion in self.camiones:
             total_coste += calcular_distancia_camion(camion) * self.params.coste_km_max
-        self.coste_km = total_coste
         return total_coste
 
     # el coste por km se modifica cuando se altera la lista de viajes de un camion, 
@@ -519,7 +517,6 @@ class Camiones(object):
                     total_coste += ((self.params.valor_deposito * 1.02) - (self.params.valor_deposito * 0.98))
                 elif viaje[2] > 0:
                     total_coste += (self.params.valor_deposito * (1 - (2 ** viaje[2]) / 100)) - (self.params.valor_deposito * (1 - (2 ** (viaje[2]+1)) / 100))
-        self.coste_petno = total_coste
         return total_coste
 
     # la única manera de modificar el coste de peticiones no servidas es asignando o eliminando peticiones
@@ -541,12 +538,7 @@ class Camiones(object):
 
 ####################### Soluciones iniciales
 def generar_sol_inicial_vacio(params: ProblemParameters) -> Camiones:
-    camiones = Camiones(params, [])
-    # calculamos los valores iniciales
-    camiones.coste_km_inicial()
-    camiones.ganancias_inicial()
-    camiones.coste_petno_inicial()
-    return camiones
+    return Camiones(params, [])
 
 
 def generar_sol_inicial(params: ProblemParameters) -> Camiones:
@@ -608,11 +600,6 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
         
         # pasamos a la siguiente gasolinera
         g += 1
-    
-    # calculamos los valores iniciales
-    camiones.coste_km_inicial()
-    camiones.ganancias_inicial()
-    camiones.coste_petno_inicial()
     
     return camiones
           
@@ -678,11 +665,6 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
         if camion.viajes[-1][2] != -1:
             volver_a_centro(camion)
     
-    # calculamos los valores iniciales
-    camiones.coste_km_inicial()
-    camiones.ganancias_inicial()
-    camiones.coste_petno_inicial()
-
     return camiones
 
 ###########################

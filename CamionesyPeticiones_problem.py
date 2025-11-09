@@ -4,7 +4,7 @@ from typing import Generator
 
 
 from abia_Gasolina import Gasolineras, Gasolinera, CentrosDistribucion, Distribucion
-from Camion_state import *
+from Camion_state_opt import *
 from Camion_parameters import ProblemParameters
 from Camion_operators import CamionOperators
 
