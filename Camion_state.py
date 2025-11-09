@@ -459,6 +459,15 @@ class Camiones(object):
             return camiones_copy
         
         return camiones_copy
+    
+    def ganancias_actual(self) -> float:
+        return self.ganancias
+    
+    def coste_km_actual(self) -> float:
+        return self.coste_km
+
+    def coste_petno_actual(self) -> float:
+        return self.coste_petno
 
     def heuristic(self) -> float:
         return self.ganancias - self.coste_km - self.coste_petno
