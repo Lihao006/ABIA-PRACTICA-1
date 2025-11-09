@@ -93,9 +93,9 @@ class Camiones(object):
                 if viaje[2] == -1:
                     continue
                 # posibles posiciones de insercion anteriores 
-            for pos_obj in range(1, viaje_i):
-                # generamos el operador para mover la peticion de viaje_i a la pos_obj
-                yield MoverAntes(cam_i, viaje_i, viaje_i, pos_obj)
+                for pos_obj in range(1, viaje_i):
+                    # generamos el operador para mover la peticion de viaje_i a la pos_obj
+                    yield MoverAntes(cam_i, viaje_i, viaje_i, pos_obj)
         
         # MoverDespues 
         for cam_i, camion in enumerate(self.camiones):
@@ -105,19 +105,15 @@ class Camiones(object):
                 if camion.viajes[ind][2] != -1:
                     primer_pet_ind = ind
                     break
-        for viaje_i, viaje in enumerate(camion.viajes):
-            if viaje[2] == -1:
-                continue
-            # si es la primera peticion, generamos el operador que lo manda a la ultima posicion
-            if viaje_i == primer_pet_ind:
-                pos_obj = len(camion.viajes) - 1
-                # nos aseguramos que no está ya en la ultima posicion
-                if viaje_i < pos_obj:
-                    yield MoverDespues(cam_i, viaje_i, viaje_i, pos_obj)
-            else:
-                # mover una posicion hacia delante (siempre que no sea la ult)
                 if viaje_i + 1 < len(camion.viajes):
                     yield MoverDespues(cam_i, viaje_i, viaje_i + 1, pos_obj)
+                if viaje_i == primer_pet_ind:
+                    pos_obj = len(camion.viajes) - 1
+                    # nos aseguramos que no está ya en la ultima posicion
+                    if viaje_i < pos_obj:
+                        yield MoverDespues(cam_i, viaje_i, viaje_i, pos_obj)
+                else:
+                    # mover una posicion hacia delante (siempre que no sea la ult)
                     
         # AsignarPeticion
         # primero construimos un set de peticiones asignadas
