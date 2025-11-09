@@ -138,3 +138,5 @@ if __name__ == "__main__":
     print()
     for i in range(len(c.centros)):
         print(f"Centro {i}: {c.centros[i].cx} {c.centros[i].cy}")
+
+#comentario comentario 
