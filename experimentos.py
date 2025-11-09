@@ -25,3 +25,38 @@ if __name__ == '__main__':
 	hc_1_t = timeit.timeit(lambda: hill_climbing(CamionesyPeticiones(initial_state)), number=1)
 	print('Tiempo de ejecucion Hill Climbing:')
 	print(hc_1_t)
+	
+
+    # con la solucion inicial vacía
+	print('Generando solucion inicial vacía...')
+	initial_state = generar_sol_inicial_vacia(params)
+	print('Solucion inicial generada.')
+	print(f"Ganancias iniciales: {initial_state.ganancias_actual()}")
+	print(f'Coste_km inicial: {initial_state.coste_km_actual()}')
+	print(f'Coste peticiones no servidas inicial: {initial_state.coste_petno_actual()}')
+	print(f"Heuristica inicial: {initial_state.heuristic()}")
+	print('Ejecutando Hill Climbing...')
+	hc_1 = hill_climbing(CamionesyPeticiones(initial_state))
+	print('Hill Climbing ejecutado.')
+	print(hc_1.heuristic())
+    # tiempo en segundos
+	hc_1_t = timeit.timeit(lambda: hill_climbing(CamionesyPeticiones(initial_state)), number=1)
+	print('Tiempo de ejecucion Hill Climbing:')
+	print(hc_1_t)
+	
+    # con la solucion inicial vacía
+	print('Generando solucion inicial greedy...')
+	initial_state = generar_sol_inicial_greedy(params)
+	print('Solucion inicial generada.')
+	print(f"Ganancias iniciales: {initial_state.ganancias_actual()}")
+	print(f'Coste_km inicial: {initial_state.coste_km_actual()}')
+	print(f'Coste peticiones no servidas inicial: {initial_state.coste_petno_actual()}')
+	print(f"Heuristica inicial: {initial_state.heuristic()}")
+	print('Ejecutando Hill Climbing...')
+	hc_1 = hill_climbing(CamionesyPeticiones(initial_state))
+	print('Hill Climbing ejecutado.')
+	print(hc_1.heuristic())
+    # tiempo en segundos
+	hc_1_t = timeit.timeit(lambda: hill_climbing(CamionesyPeticiones(initial_state)), number=1)
+	print('Tiempo de ejecucion Hill Climbing:')
+	print(hc_1_t)
