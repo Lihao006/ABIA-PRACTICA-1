@@ -75,28 +75,85 @@ class Camiones(object):
         """
         # MoverPeticion
         # precaclular los indices de las peticiones por camion
-        petitions_per_cam = [ [i for i,v in enumerate(cam.viajes) if v[2] != -1] for cam in self.camiones ]
-        for cam_i, indices in enumerate(petitions_per_cam):
-            if not indices:
+        pet_por_cam = []
+        for x in range(len(self.camiones)):
+            cam = self.camiones[x]
+            indices = []
+            for ind in range(len(cam.viajes)):
+                if cam.viajes[ind][2] != -1:
+                    indices.append(ind)
+            pet_por_cam.append(indices)
+
+        for cam_i in range(len(pet_por_cam)):
+            indices = pet_por_cam[cam_i]
+            if len(indices) == 0:
                 continue
-            for viaje_i in indices:
-                for cam_j, camion_j in enumerate(self.camiones):
+            org = self.camiones[cam_i]
+            for indice_pos in range(len(indices)):
+                viaje_i = indices[indice_pos]
+                for cam_j in range(len(self.camiones)):
                     if cam_j == cam_i:
                         continue
-                    if camion_j.capacidad <= 0:
+                    dest = self.camiones[cam_j]
+                    if dest.capacidad <= 0:
+                        continue
+                    temp_org = Camion(org.viajes.copy())
+                    temp_dest = Camion(dest.viajes.copy())
+                    if viaje_i < 0 or viaje_i >= len(temp_org.viajes):
+                        continue
+                    trip = temp_org.viajes.pop(viaje_i)
+                    temp_dest.viajes.append(trip)
+                    limpiar_centros_redundantes(temp_org, self.params)
+                    limpiar_centros_redundantes(temp_dest, self.params)
+                    try:
+                        assert temp_dest.capacidad >= 0
+                        km_org = calcular_distancia_camion(temp_org)
+                        km_dest = calcular_distancia_camion(temp_dest)
+                        assert km_org <= self.params.max_km
+                        assert km_dest <= self.params.max_km
+                        assert temp_org.num_viajes <= self.params.max_viajes
+                        assert temp_dest.num_viajes <= self.params.max_viajes
+                        num_peticiones_org = 0
+                        for vv in temp_org.viajes:
+                            if vv[2] != -1:
+                                num_peticiones_org += 1
+                        assert not (temp_org.num_viajes == 1 and num_peticiones_org == 0)
+                    except AssertionError:
                         continue
                     yield MoverPeticion((cam_i, viaje_i), cam_i, cam_j)
 
         # MoverAntes 
-        # Limitamos el avance máximo para reducir branching (optimizacion)
-        MAX_ADVANCE = 10
-        for cam_i, camion in enumerate(self.camiones):
-            indices = petitions_per_cam[cam_i]
-            if not indices:
-                continue
-            for viaje_i in indices:
-                start_pos = max(1, viaje_i - MAX_ADVANCE)
-                for pos_obj in range(start_pos, viaje_i):
+        for cam_i in range(len(self.camiones)):
+            camion = self.camiones[cam_i]
+            for viaje_i in range(len(camion.viajes)):
+                viaje = camion.viajes[viaje_i]
+                if viaje[2] == -1:
+                    continue
+                for pos_obj in range(1, viaje_i):
+                    temp = Camion(camion.viajes.copy())
+                    mov = temp.viajes.pop(viaje_i)
+                    temp.viajes.insert(pos_obj, mov)
+                    limpiar_centros_redundantes(temp, self.params)
+                    # comprobar restricciones
+                    try:
+                        # km límite
+                        km_nuevo = calcular_distancia_camion(temp)
+                        assert km_nuevo <= self.params.max_km
+                        # cisterna: max consecutivas entre centros 
+                        consec = 0
+                        max_consec = 0
+                        for v in temp.viajes:
+                            if v[2] == -1:
+                                if consec > max_consec:
+                                    max_consec = consec
+                                consec = 0
+                            else:
+                                consec += 1
+                        if consec > max_consec:
+                            max_consec = consec
+                        assert max_consec <= self.params.capacidad_maxima
+                    except AssertionError:
+                        continue
                     yield MoverAntes(cam_i, viaje_i, viaje_i, pos_obj)
         
         # MoverDespues 
