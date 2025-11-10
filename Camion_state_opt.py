@@ -37,10 +37,9 @@ class Camion(object):
             return nuevo
 
 class Camiones(object):
-    def __init__(self, params: ProblemParameters, camiones: List[Camion], lista_pet_asig: List[tuple] = [], lista_pet_no_asig: List[tuple] = [], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0):
+    def __init__(self, params: ProblemParameters, camiones: List[Camion], lista_pet_no_asig: List[tuple] = [], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0):
         self.params = params
         self.camiones = camiones
-        self.lista_pet_asig = lista_pet_asig
         self.lista_pet_no_asig = lista_pet_no_asig
         self.ganancias = ganancias
         self.coste_km = coste_km
@@ -56,9 +55,8 @@ class Camiones(object):
     def copy(self) -> 'Camiones':
         # Afegim el copy per cada llista de camions
         camiones_copy = [camion.copy() for camion in self.camiones]
-        lista_pet_asig_copy = [tuple(pet) for pet in self.lista_pet_asig]
         lista_pet_no_asig_copy = [tuple(pet) for pet in self.lista_pet_no_asig]
-        return Camiones(self.params, camiones_copy, lista_pet_asig_copy, lista_pet_no_asig_copy, self.ganancias, self.coste_km, self.coste_petno)
+        return Camiones(self.params, camiones_copy, lista_pet_no_asig_copy, self.ganancias, self.coste_km, self.coste_petno)
 
     def generate_actions(self) -> Generator[CamionOperators, None, None]:
         """
@@ -370,7 +368,6 @@ class Camiones(object):
                         dest.km_recorridos = dest.km_recorridos + 2 * distancia_centro_nueva_j
 
                     # actualizamos las listas de peticiones asignadas y no asignadas
-                    camiones_copy.lista_pet_asig.append(pet)
                     camiones_copy.lista_pet_no_asig.remove(pet)
                 
                 elif action.cam_j != -1:
@@ -613,7 +610,6 @@ class Camiones(object):
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
 
             # modificamos las listas de peticiones asignadas y no asignadas
-            camiones_copy.lista_pet_asig.append(action.pet_i)
             camiones_copy.lista_pet_no_asig.remove(action.pet_i)
 
             # modificamos los valores de costes y ganancias de la nueva solucion
@@ -747,7 +743,6 @@ class Camiones(object):
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
             
             # modificamos la lista de peticiones asignadas y no asignadas
-            camiones_copy.lista_pet_asig.remove(pet)
             camiones_copy.lista_pet_no_asig.append(pet)
             
             # modificamos los valores de costes y ganancias de la nueva solucion
@@ -775,11 +770,12 @@ class Camiones(object):
     # solo se llama una vez, para modificar las ganancias se usa otra funcion de menor coste computacional
     def ganancias_inicial(self) -> float:
         total_ganancias = 0
-        for peticion in self.lista_pet_asig:
-            if peticion[2] == 0:
-                total_ganancias += 1000 * 1.02
-            elif peticion[2] > 0:
-                total_ganancias += 1000 * (1 - (2 ** peticion[2]) / 100)
+        for camion in self.camiones:
+            for peticion in camion.viajes:
+                if peticion[2] == 0:
+                    total_ganancias += 1000 * 1.02
+                elif peticion[2] > 0:
+                    total_ganancias += 1000 * (1 - (2 ** peticion[2]) / 100)
         self.ganancias = total_ganancias
         return self.ganancias
 
@@ -853,22 +849,17 @@ class Camiones(object):
         return self.coste_petno
 
 
-    # tambien necesitamos la lista de peticiones inicialmente asignadas
-    def lista_pet_asig_inicial(self) -> List[tuple]:
-        lista_asig = []
-        for camion in self.camiones:
-            for viaje in camion.viajes:
-                if viaje[2] != -1:
-                    lista_asig.append((viaje))
-        self.lista_pet_asig = lista_asig
-        return self.lista_pet_asig
-
     # y la lista de peticiones no asignadas
     def lista_pet_no_asig_inicial(self) -> List[tuple]:
         lista_no_asig = []
+        lista_pet_asig = []
+        for camion in self.camiones:
+            for peticion in camion.viajes:
+                lista_pet_asig.append(peticion)
+
         for gasolinera in gasolineras.gasolineras:
             for peticion in gasolinera.peticiones:
-                if peticion not in self.lista_pet_asig:
+                if peticion not in lista_pet_asig:
                     lista_no_asig.append((gasolinera.cx, gasolinera.cy, peticion))
         self.lista_pet_no_asig = lista_no_asig
         return self.lista_pet_no_asig
@@ -947,7 +938,6 @@ def generar_sol_inicial(params: ProblemParameters) -> Camiones:
         g += 1
 
     # calc la lista de peticiones asignadas y no asignadas
-    camiones.lista_pet_asig_inicial()
     camiones.lista_pet_no_asig_inicial()
     
     # calculamos los valores iniciales
@@ -1020,7 +1010,6 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
             volver_a_centro(camion)
 
     # calc la lista de peticiones asignadas y no asignadas
-    camiones.lista_pet_asig_inicial()
     camiones.lista_pet_no_asig_inicial()
     
     # calculamos los valores iniciales
