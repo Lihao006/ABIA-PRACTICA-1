@@ -207,49 +207,45 @@ class Camiones(object):
         #SwapPeticiones
         # iteramos sobre distintas parejas de camiones
         for cam_i in range(len(self.camiones)):
+            # evitamos repetir swaps ya realizados
             for cam_j in range(cam_i + 1, len(self.camiones)):
                 camion_i = self.camiones[cam_i]
                 camion_j = self.camiones[cam_j]
-                # recogemos el índice de la peticion para cada camion
+                # recogemos el índice de la peticion para cada pareja de camion
                 ind_i = [ind for ind, v in enumerate(camion_i.viajes) if v[2] != -1]
                 ind_j = [ind for ind, v in enumerate(camion_j.viajes) if v[2] != -1]
+                # vamos intercambiando las peticiones entre ambos camiones
+                # no incumplirá el max_viajes ya que el numero de viajes no cambiará
+                # solo hay que mirar que no sobrepase los km_max tras el swap
                 for ii in ind_i:
                     for jj in ind_j:
-                        # aseguramos las restricciones de la cisterna después del swap
-                        #  calculamos peticiones consecutivas desde el ultimo centro
-                        def desp_swap(cam, eliminar_ind, añadir_viaje):
-                            # construimos una lista de viajes después de eliminar el indice y añadir el viaje
-                            viajes = cam.viajes.copy()
-                            # eliminamos el indice
-                            viajes.pop(eliminar_ind)
-                            # añadimos el viaje
-                            viajes.append(añadir_viaje)
-                            # encontramos el ultimo centro
-                            ult_centro = None
-                            for x in range(len(viajes)-1, -1, -1):
-                                if viajes[x][2] == -1:
-                                    ult_centro = x
-                                    break
-                            consec = 0
-                            start_x = ult_centro + 1 if ult_centro is not None else 0
-                            for x in range(start_x, len(viajes)):
-                                if viajes[x][2] != -1:
-                                    consec += 1
-                            return consec
+                        # calculamos peticiones consecutivas desde el ultimo centro
+                        pet_i = camion_i.viajes[ii]
+                        pet_j = camion_j.viajes[jj]
+                        
+                        # condicion: si intercambiamos las peticiones, ambos camiones deben poder realizar todos los demás viajes
+                        distancia_1_a_nueva_i = distancia((camion_i.viajes[ii-1][0], camion_i.viajes[ii-1][1]), (pet_j[0], pet_j[1]))
+                        distancia_nueva_a_2_i = distancia((pet_j[0], pet_j[1]), (camion_i.viajes[ii+1][0], camion_i.viajes[ii+1][1]))
+                        distancia_1_a_vieja_i = distancia((camion_i.viajes[ii-1][0], camion_i.viajes[ii-1][1]), (camion_i.viajes[ii][0], camion_i.viajes[ii][1]))
+                        distancia_vieja_a_2_i = distancia((camion_i.viajes[ii][0], camion_i.viajes[ii][1]), (camion_i.viajes[ii+1][0], camion_i.viajes[ii+1][1]))
+                        distancia_nueva_i = camion_i.km_recorridos + distancia_1_a_nueva_i + distancia_nueva_a_2_i - distancia_1_a_vieja_i - distancia_vieja_a_2_i
 
-                        trip_i = camion_i.viajes[ii]
-                        trip_j = camion_j.viajes[jj]
-                        # miramos la capacidad de la cisterna de ambos camiones después del swap 
-                        consec_i = desp_swap(camion_i, ii, trip_j)
-                        consec_j = desp_swap(camion_j, jj, trip_i)
-                        if consec_i > self.params.capacidad_maxima or consec_j > self.params.capacidad_maxima:
-                            continue
-                        yield SwapPeticiones(ii, jj, cam_i, cam_j)
+                        distancia_1_a_nueva_j = distancia((camion_j.viajes[jj-1][0], camion_j.viajes[jj-1][1]), (pet_i[0], pet_i[1]))
+                        distancia_nueva_a_2_j = distancia((pet_i[0], pet_i[1]), (camion_j.viajes[jj+1][0], camion_j.viajes[jj+1][1]))
+                        distancia_1_a_vieja_j = distancia((camion_j.viajes[jj-1][0], camion_j.viajes[jj-1][1]), (camion_j.viajes[jj][0], camion_j.viajes[jj][1]))
+                        distancia_vieja_a_2_j = distancia((camion_j.viajes[jj][0], camion_j.viajes[jj][1]), (camion_j.viajes[jj+1][0], camion_j.viajes[jj+1][1]))
+                        distancia_nueva_j = camion_j.km_recorridos + distancia_1_a_nueva_j + distancia_nueva_a_2_j - distancia_1_a_vieja_j - distancia_vieja_a_2_j
+
+                        if distancia_nueva_i <= self.params.max_km and distancia_nueva_j <= self.params.max_km:
+                        # si no excede el maximo de km, generamos el operador
+                            yield SwapPeticiones(ii, jj, cam_i, cam_j)
 
         # Eliminar Peticiones
-        for cam_i, indices in enumerate(petitions_per_cam):
-            for viaje_i in indices:
-                yield EliminarPeticiones((cam_i, viaje_i), cam_i)
+        # tiene que ser una peticion asignada
+        for cam_i, camion in enumerate(self.camiones):
+            for pet_i in range(len(camion.viajes)):
+                if camion.viajes[pet_i][2] != -1:
+                    yield EliminarPeticiones(camion.viajes[pet_i], cam_i)
 
     def apply_action(self, action: CamionOperators) -> 'Camiones':
         """
@@ -389,7 +385,7 @@ class Camiones(object):
 
             # recalculamos los km_recorridos del camion
             calcular_distancia_camion(camion)
-            
+
             # calculamos el nuevo coste por km del camion
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
 
@@ -412,14 +408,6 @@ class Camiones(object):
             cam_j = action.cam_j
             org = camiones_copy.camiones[cam_i]
             dest = camiones_copy.camiones[cam_j]
-
-            # validamos indices
-            if ii < 0 or ii >= len(org.viajes):
-                return camiones_copy
-            if jj < 0 or jj >= len(dest.viajes):
-                return camiones_copy
-            if org.viajes[ii][2] == -1 or dest.viajes[jj][2] == -1:
-                return camiones_copy
             
             # calculamos los costes por km antes del swap
             cost_org_ant = camiones_copy.coste_km_1camion(org)
@@ -434,19 +422,24 @@ class Camiones(object):
             dest.viajes.pop(jj)
 
             # añadimos los viajes intercambiados
-            org.viajes.append(trip_j)
-            dest.viajes.append(trip_i)
+            org.viajes.insert(ii, trip_j)
+            dest.viajes.insert(jj, trip_i)
+            
+            # Recalcular km para ambos camiones
+            # como que ahora los centros no interfieren en esta operacion, podemos modificar solo las distancias afectadas por el swap
+            # y así evitamos recalcular toda la distancia del camion
+            distancia_1_a_nueva_org = distancia((org.viajes[ii-1][0], org.viajes[ii-1][1]), (trip_j[0], trip_j[1]))
+            distancia_nueva_a_2_org = distancia((trip_j[0], trip_j[1]), (org.viajes[ii+1][0], org.viajes[ii+1][1]))
+            distancia_1_a_vieja_org = distancia((org.viajes[ii-1][0], org.viajes[ii-1][1]), (org.viajes[ii][0], org.viajes[ii][1]))
+            distancia_vieja_a_2_org = distancia((org.viajes[ii][0], org.viajes[ii][1]), (org.viajes[ii+1][0], org.viajes[ii+1][1]))
+            org.dist_nueva(distancia_1_a_nueva_org + distancia_nueva_a_2_org - distancia_1_a_vieja_org - distancia_vieja_a_2_org)
 
-            # Recalcular estado de ambos camiones (num_viajes y capacidad)
-            limpiar_centros_redundantes(org, self.params)
-            limpiar_centros_redundantes(dest, self.params)
-
-            # si alguna capacidad queda a 0 tras la recalculacion, enviarlo al centro
-            if org.capacidad == 0:
-                volver_a_centro(org)
-            if dest.capacidad == 0:
-                volver_a_centro(dest)
-
+            distancia_1_a_nueva_dest = distancia((dest.viajes[jj-1][0], dest.viajes[jj-1][1]), (trip_i[0], trip_i[1]))
+            distancia_nueva_a_2_dest = distancia((trip_i[0], trip_i[1]), (dest.viajes[jj+1][0], dest.viajes[jj+1][1]))
+            distancia_1_a_vieja_dest = distancia((dest.viajes[jj-1][0], dest.viajes[jj-1][1]), (dest.viajes[jj][0], dest.viajes[jj][1]))
+            distancia_vieja_a_2_dest = distancia((dest.viajes[jj][0], dest.viajes[jj][1]), (dest.viajes[jj+1][0], dest.viajes[jj+1][1]))
+            dest.dist_nueva(distancia_1_a_nueva_dest + distancia_nueva_a_2_dest - distancia_1_a_vieja_dest - distancia_vieja_a_2_dest)
+            
             # calculamos los nuevos costes por km de ambos camiones
             cost_org_desp = camiones_copy.coste_km_1camion(org)
             cost_dest_desp = camiones_copy.coste_km_1camion(dest)
@@ -459,33 +452,40 @@ class Camiones(object):
         
         # EliminarPeticiones
         if isinstance(action, EliminarPeticiones):
-            cam_i, viaje_i = action.pet_i
+            pet = action.pet_i
             camion = camiones_copy.camiones[action.cam_i]
-
-            # validamos índices
-            if viaje_i < 0 or viaje_i >= len(camion.viajes):
-                return camiones_copy
-            trip = camion.viajes[viaje_i]
-            if trip[2] == -1:
-                return camiones_copy
 
             # antes de eliminar la peticion, guardamos el coste por km del camion
             coste_cam_ant = camiones_copy.coste_km_1camion(camion)
 
             # eliminamos la peticion del camion
-            camion.viajes.pop(viaje_i)
-            limpiar_centros_redundantes(camion, self.params)
+            for viaje in range(len(camion.viajes)):
+                if camion.viajes[viaje] == pet:
+                    if camion.viajes[viaje -1][2] == - 1 and camion.viajes[viaje +1][2] == -1:
+                        #miramos si hay que quitar centros redundantes y recalculamos num_viajes
+                        # si la peticion esta entre dos centros, eliminamos tambien uno de los centros para evitar redundancia
+                        camion.viajes.remove(camion.viajes[viaje -1])
+                        # el indice se reduce en 1 tras eliminar el centro anterior
+                        camion.viajes.remove(camion.viajes[viaje -1])
+                    else:
+                        # si no, simplemente eliminamos la peticion
+                        camion.viajes.remove(camion.viajes[viaje])
+                    break
+            
+            # recalculamos los km_recorridos del camion
+            calcular_distancia_camion(camion)
 
             # calculamos el nuevo coste por km del camion
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
             
             # modificamos la lista de peticiones asignadas y no asignadas
-            camiones_copy.lista_pet_asig.remove(trip)
-            camiones_copy.lista_pet_no_asig.append(trip)
+            camiones_copy.lista_pet_asig.remove(pet)
+            camiones_copy.lista_pet_no_asig.append(pet)
+            
             # modificamos los valores de costes y ganancias de la nueva solucion
             camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
-            camiones_copy.mod_ganancias(trip, "eliminar")
-            camiones_copy.mod_coste_petno(trip, "eliminar")
+            camiones_copy.mod_ganancias(pet, "eliminar")
+            camiones_copy.mod_coste_petno(pet, "eliminar")
 
             return camiones_copy
 
@@ -825,4 +825,6 @@ def limpiar_centros_redundantes(camion: Camion, params: ProblemParameters) -> No
     camion.capacidad = params.capacidad_maxima - consec
     if camion.capacidad < 0:
         camion.capacidad = 0
+
+
 #######################################
