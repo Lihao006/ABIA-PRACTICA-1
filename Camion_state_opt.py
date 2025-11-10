@@ -70,19 +70,25 @@ class Camiones(object):
     def generate_actions(self) -> Generator[CamionOperators, None, None]:
         """
         Generar operadores:
-        - MoverPeticion: mover una peticion (cualquier viaje con peticion != -1) de un camion al final de otro camion.
+        - MoverPeticion: mover una peticion (cualquier viaje con peticion != -1) de un camion detrás de caulquier viaje de otro camion (incluye a sí mismo).
         - AsignarPeticion: asignar peticiones no asignadas a un camion
         """
         # MoverPeticion
         # precaclular los indices de las peticiones por camion
-        pet_por_cam = []
-        for x in range(len(self.camiones)):
-            cam = self.camiones[x]
-            indices = []
-            for ind in range(len(cam.viajes)):
-                if cam.viajes[ind][2] != -1:
-                    indices.append(ind)
-            pet_por_cam.append(indices)
+        # por cada peticion asignada en cada camion, puede ir a cualquier otro camion cumpliendo restricciones
+        # necesitaremos indentificar los camiones, por lo que usaremos enumerate
+        for cam_i, camion_i in enumerate(self.camiones):
+            for pet_i in range(len(camion_i.viajes)):
+                if camion_i.viajes[pet_i][2] != -1:
+                    # es una peticion
+                    for cam_j, camion_j in enumerate(self.camiones):
+                        for pos_j in range(len(camion_j.viajes) + 1):
+                            if cam_j == cam_i and (pos_j == pet_i or pos_j == pet_i + 1):
+                                # no mover dentro del mismo camion a la misma posicion
+                                continue
+                            # comprobamos que no se convierta en 3 peticiones consecutivas
+                            
+                            yield MoverPeticion((cam_i, pet_i), cam_i, cam_j)  # mover a otro camion
 
         for cam_i in range(len(pet_por_cam)):
             indices = pet_por_cam[cam_i]
