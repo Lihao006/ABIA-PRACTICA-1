@@ -24,9 +24,11 @@ class AsignarPeticion(CamionOperators):
 
 class SwapPeticiones(CamionOperators):
     # pet_i y pet_j pueden ser tuplas (para peticiones no asignadas) o int (para peticiones asignadas)
-    def __init__(self, pet_i, pet_j, cam_i: int, cam_j: int):
+    def __init__(self, pet_i: tuple, pet_j: tuple, pos_i: int, pos_j: int, cam_i: int, cam_j: int):
         self.pet_i = pet_i
         self.pet_j = pet_j
+        self.pos_i = pos_i
+        self.pos_j = pos_j
         self.cam_i = cam_i
         self.cam_j = cam_j
 
