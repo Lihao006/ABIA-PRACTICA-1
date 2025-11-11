@@ -94,37 +94,34 @@ class Camiones(object):
                         if pos_j + 2 < len(camion_j.viajes) and camion_j.viajes[pos_j + 2][2] == -1:
                             # -1 indica que la peticion no esta asignada a ningun camion
                             yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 1)
-                            yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 2)
 
                         # si estamos en el último centro, miramos si podemos anadir viajes
                         else:
                             if camion_j.num_viajes < params.max_viajes:
-                            # comprobamos km max en apply_actions
                                 yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 1)
 
         # precaclular los indices de las peticiones por camion
         # por cada peticion asignada en cada camion, puede ir a cualquier otro camion cumpliendo restricciones
         # necesitaremos indentificar los camiones, por lo que usaremos enumerate
         for cam_i, camion_i in enumerate(self.camiones):
-            for pos_i, pet in enumerate(camion_i.viajes):
-                if pet[2] != -1:
+            for pos_i, viaje_i in enumerate(camion_i.viajes):
+                if viaje_i[2] != -1:
                     # es una peticion
                     for cam_j, camion_j in enumerate(self.camiones):
-                        for pos_j, pet_j in enumerate(camion_j.viajes):
-                            if cam_j == cam_i and (pos_j == pos_i or pos_j == pos_i + 1):
+                        for pos_j, viaje_j in enumerate(camion_j.viajes):
+                            if cam_j == cam_i and pos_j == pos_i:
                                 # no mover dentro del mismo camion a la misma posicion
                                 continue
                             # comprobamos que no se convierta en 3 peticiones consecutivas
                             # solo se podra insertar si:
                             # la pos_j es un centro y pos_j + 2 tambien es centro, aplicamos el operador para insetar depués de pos_j y pos_j + 1
-                            if camion_j.viajes[pos_j][2] == -1:
+                            if viaje_j[2] == -1:
                                 if pos_j + 2 < len(camion_j.viajes) and camion_j.viajes[pos_j + 2][2] == -1:
-                                    yield MoverPeticion(pet, cam_i, cam_j, pos_i, pos_j + 1)
-                                    yield MoverPeticion(pet, cam_i, cam_j, pos_i, pos_j + 2)
+                                    yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
                                 # si estamos en el último centro, miramos si podemos anadir viajes
                                 else:
                                     if camion_j.num_viajes < params.max_viajes:
-                                        yield MoverPeticion(pet, cam_i, cam_j, pos_i, pos_j + 1)
+                                        yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
                                             
         # MoverAntes
         # de un camion, adelantar una peticion a una posicion de la lista de viajes
@@ -203,9 +200,7 @@ class Camiones(object):
             for cam_j, camion_j in enumerate(self.camiones):
                 for pos_j in range(1, len(camion_j.viajes)):
                     if camion_j.viajes[pos_j][2] != -1:
-                        # condicion: si cambiamos la peticion, el camion debe poder realizar todos los demás viajes
-                        # si no excede el maximo de km, generamos el operador
-                        yield SwapPeticiones(pet, pos_j, -1, cam_j)
+                        yield SwapPeticiones(pet, camion_j.viajes[pos_j], -1, pos_j, cam_i, cam_j)
 
         # para peticiones asignadas en camiones, intercambiar peticiones entre camiones
         # iteramos sobre parejas de camiones, incluido el mismo camion
@@ -217,7 +212,6 @@ class Camiones(object):
                 ind_j = [ind for ind, v in enumerate(camion_j.viajes) if v[2] != -1]
                 # vamos intercambiando las peticiones entre ambos camiones
                 # no incumplirá el max_viajes ya que el numero de viajes no cambiará
-                # solo hay que mirar que no sobrepase los km_max tras el swap
                 for ii in ind_i:
                     for jj in ind_j:
                         if cam_i == cam_j and ii == jj:
@@ -228,7 +222,7 @@ class Camiones(object):
                         pet_j = camion_j.viajes[jj]
                         
                         # si no excede el maximo de km, generamos el operador
-                        yield SwapPeticiones(ii, jj, cam_i, cam_j)
+                        yield SwapPeticiones(pet_i, pet_j, ii, jj, cam_i, cam_j)
 
         # Eliminar Peticiones
         # tiene que ser una peticion asignada
@@ -266,8 +260,6 @@ class Camiones(object):
                     
                 # actualizamos la lista de peticiones no asignadas
                 camiones_copy.lista_pet_no_asig.remove(pet)
-
-                dest.recalcular_km()
 
                 # modificamos los valores de costes y ganancias de la nueva solucion
 
@@ -433,8 +425,10 @@ class Camiones(object):
         
         #SwapPeticiones
         if isinstance(action, SwapPeticiones):
-            ii = action.pet_i
-            jj = action.pet_j
+            pet_i = action.pet_i
+            pet_j = action.pet_j
+            pos_i = action.pos_i
+            pos_j = action.pos_j
             cam_i = action.cam_i
             cam_j = action.cam_j
 
@@ -442,21 +436,21 @@ class Camiones(object):
                 # Para peticiones no asignadas
                 dest = camiones_copy.camiones[cam_j]
                 # es una tupla porque es una peticion no asignada
-                pet_no = ii
+                pet_no = pet_i
 
                 # peticion asignada
-                assig_pet = dest.viajes[jj]
+                pet_asig = pet_j
 
-                # perform swap: place unassigned pet in dest at jj
-                dest.viajes[jj] = pet_no
+                # realizamos el intercambio
+                dest.viajes[pos_j] = pet_no
 
                 # actualizar lista de peticiones no asignadas
                 camiones_copy.lista_pet_no_asig.remove(pet_no)
-                camiones_copy.lista_pet_no_asig.append(assig_pet)
+                camiones_copy.lista_pet_no_asig.append(pet_asig)
 
                 # update gains and unserved-costs
-                camiones_copy.mod_ganancias(assig_pet, "eliminar")
-                camiones_copy.mod_coste_petno(assig_pet, "eliminar")
+                camiones_copy.mod_ganancias(pet_asig, "eliminar")
+                camiones_copy.mod_coste_petno(pet_asig, "eliminar")
 
                 camiones_copy.mod_ganancias(pet_no, "asignar")
                 camiones_copy.mod_coste_petno(pet_no, "asignar")
@@ -472,16 +466,16 @@ class Camiones(object):
                     dest = camiones_copy.camiones[cam_j]
 
                     # extraemos viajes antes del cambio
-                    pet_i = org.viajes[ii]
-                    pet_j = dest.viajes[jj]
+                    pet_i = org.viajes[pos_i]
+                    pet_j = dest.viajes[pos_j]
 
                     # eliminamos del origen y del destino
-                    org.viajes.pop(ii)
-                    dest.viajes.pop(jj)
+                    org.viajes.pop(pos_i)
+                    dest.viajes.pop(pos_j)
 
                     # anadimos los viajes intercambiados
-                    org.viajes.insert(ii, pet_j)
-                    dest.viajes.insert(jj, pet_i)
+                    org.viajes.insert(pos_i, pet_j)
+                    dest.viajes.insert(pos_j, pet_i)
 
                     org.recalcular_km()
                     dest.recalcular_km()
@@ -491,12 +485,12 @@ class Camiones(object):
                     camion = camiones_copy.camiones[cam_i]
 
                     # extraemos los viajes antes del cambio
-                    pet_i = camion.viajes[ii]
-                    pet_j = camion.viajes[jj]
+                    pet_i = camion.viajes[pos_i]
+                    pet_j = camion.viajes[pos_j]
 
                     # realizamos el swap
-                    camion.viajes[ii] = pet_j
-                    camion.viajes[jj] = pet_i
+                    camion.viajes[pos_i] = pet_j
+                    camion.viajes[pos_j] = pet_i
 
                     # las ganancias y el coste por peticiones no servidas no cambian al intercambiar una peticion entre camiones
                     camion.recalcular_km()
