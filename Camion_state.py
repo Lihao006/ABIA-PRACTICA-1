@@ -530,6 +530,9 @@ class Camiones(object):
         camiones_copy.pasos += 1
         return camiones_copy
     
+    def pasos_actual(self) -> int:
+        return self.pasos
+    
     def ganancias_actual(self) -> float:
         return self.ganancias
     
