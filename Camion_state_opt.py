@@ -27,6 +27,7 @@ class Camion(object):
         # distinguir el orden de visitas a gasolineras y centros para poder calcular la distancia recorrida.
 
         # El primer elemento de la lista de viajes es siempre el centro de distribucion inicial.
+        # El ultimo elemento de la lista de viajes es siempre el centro de distribucion final (puede coincidir con el inicial).
     
     # tenemos que definir un copy también para la clase Camion
     def copy(self) -> 'Camion':
@@ -577,7 +578,17 @@ class Camiones(object):
             # guardamos coste km antes
             coste_cam_ant = camiones_copy.coste_km_1camion(camion)
 
-            if camion.viajes[pos_i + 1][2] == -1:
+            # calc las distancias q usaremos despues para recalcular los km del camion, antes de eliminar la peticion
+            # tal y como hemos implementado el codigo, pos_i + 1 siempre sera centro, porque sino no se hubiera generado el sucesor
+            
+            distancia_1_elim = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (pet[0], pet[1]))
+            # esta distancia se manteniene, pero iria en sentido contrario, pero el valor es el mismo
+            # distancia_elim_centro = distancia((pet[0], pet[1]), (camion.viajes[0][0], camion.viajes[0][1]))
+            distancia_1_centro = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (camion.viajes[0][0], camion.viajes[0][1]))
+            
+            
+            # miramos si es una peticion unica en un viaje en el camion
+            if camion.viajes[pos_i - 1][2] == -1:
                 camion.viajes.pop(pos_i)
                 # eliminar el centro siguiente redundante
                 camion.viajes.pop(pos_i)
@@ -586,25 +597,40 @@ class Camiones(object):
                 if pos_i < pos_j:
                     pos_j -= 2
             else:
+                # no hay que eliminar centro
                 camion.viajes.pop(pos_i)
                 # ajustamos la posicion j si es necesario
                 if pos_i < pos_j:
                     pos_j -= 1
-
-            # Insertamos la peticion en la nueva posicion
-            camion.viajes.insert(pos_j, pet)
-
-            # calc las distancias q usaremos despues
-            distancia_1_elim = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (pet[0], pet[1]))
-            distancia_elim_2 = distancia((pet[0], pet[1]), (camion.viajes[pos_i + 1][0], camion.viajes[pos_i + 1][1]))
-            distancia_1_2 = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (camion.viajes[pos_i + 1][0], camion.viajes[pos_i + 1][1]))
             
-            distancia
+            if pos_j != len(camion.viajes):
+                # no es la ultima peticion
+                # Insertamos la peticion en la nueva posicion
+                camion.viajes.insert(pos_j, pet)
+                
+                # recalculamos los km_recorridos del camion
+                # esta distancia se mantiene
+                # distancia_centro_nueva = distancia((pet[0], pet[1]), (camion.viajes[0][0], camion.viajes[0][1]))
+                distancia_nueva_a_2 = distancia((pet[0], pet[1]), (camion.viajes[pos_j + 1][0], camion.viajes[pos_j + 1][1]))
+                distancia_2_a_centro = distancia((camion.viajes[pos_j + 1][0], camion.viajes[pos_j + 1][1]), (camion.viajes[0][0], camion.viajes[0][1]))
+                
+                camion.km_recorridos = camion.km_recorridos - distancia_1_elim + distancia_1_centro + distancia_nueva_a_2 - distancia_2_a_centro
+            else:
+                # es la ultima peticion
+                camion.viajes.append(pet)
+                volver_a_centro(camion)
+
+                # recalculamos los km_recorridos del camion
+                distancia_centro_nueva = distancia((camion.viajes[0][0], camion.viajes[0][1]), (pet[0], pet[1]))
+
+                camion.km_recorridos = camion.km_recorridos - distancia_1_elim + distancia_1_centro + distancia_centro_nueva
 
             # calculamos nuevo coste por km
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
 
             camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
+            # no cambiamos ganancias ni coste por peticiones no servidas
+
             return camiones_copy
 
         # AsignarPeticion
@@ -677,17 +703,17 @@ class Camiones(object):
                 
                 distancia_1_a_vieja_org = distancia((org.viajes[ii-1][0], org.viajes[ii-1][1]), (org.viajes[ii][0], org.viajes[ii][1]))
                 distancia_vieja_a_2_org = distancia((org.viajes[ii][0], org.viajes[ii][1]), (org.viajes[ii+1][0], org.viajes[ii+1][1]))
-                
-                org.dist_nueva(distancia_1_a_nueva_org + distancia_nueva_a_2_org - distancia_1_a_vieja_org - distancia_vieja_a_2_org)
+
+                org.km_recorridos = org.km_recorridos + distancia_1_a_nueva_org + distancia_nueva_a_2_org - distancia_1_a_vieja_org - distancia_vieja_a_2_org
 
                 distancia_1_a_nueva_dest = distancia((dest.viajes[jj-1][0], dest.viajes[jj-1][1]), (pet_i[0], pet_i[1]))
                 distancia_nueva_a_2_dest = distancia((pet_i[0], pet_i[1]), (dest.viajes[jj+1][0], dest.viajes[jj+1][1]))
                 
                 distancia_1_a_vieja_dest = distancia((dest.viajes[jj-1][0], dest.viajes[jj-1][1]), (dest.viajes[jj][0], dest.viajes[jj][1]))
                 distancia_vieja_a_2_dest = distancia((dest.viajes[jj][0], dest.viajes[jj][1]), (dest.viajes[jj+1][0], dest.viajes[jj+1][1]))
-                
-                dest.dist_nueva(distancia_1_a_nueva_dest + distancia_nueva_a_2_dest - distancia_1_a_vieja_dest - distancia_vieja_a_2_dest)
-                
+
+                dest.km_recorridos = dest.km_recorridos + distancia_1_a_nueva_dest + distancia_nueva_a_2_dest - distancia_1_a_vieja_dest - distancia_vieja_a_2_dest
+
                 # calculamos los nuevos costes por km de ambos camiones
                 cost_org_desp = camiones_copy.coste_km_1camion(org)
                 cost_dest_desp = camiones_copy.coste_km_1camion(dest)
@@ -723,8 +749,7 @@ class Camiones(object):
                 distancia_1_a_vieja_j = distancia((camion.viajes[jj-1][0], camion.viajes[jj-1][1]), (camion.viajes[jj][0], camion.viajes[jj][1]))
                 distancia_vieja_a_2_j = distancia((camion.viajes[jj][0], camion.viajes[jj][1]), (camion.viajes[jj+1][0], camion.viajes[jj+1][1]))
                 
-                nueva_distancia = camion.km_recorridos + distancia_1_a_nueva_i + distancia_nueva_a_2_i - distancia_1_a_vieja_i - distancia_vieja_a_2_i + distancia_1_a_nueva_j + distancia_nueva_a_2_j - distancia_1_a_vieja_j - distancia_vieja_a_2_j
-                camion.dist_nueva(nueva_distancia)
+                camion.km_recorridos = camion.km_recorridos + distancia_1_a_nueva_i + distancia_nueva_a_2_i - distancia_1_a_vieja_i - distancia_vieja_a_2_i + distancia_1_a_nueva_j + distancia_nueva_a_2_j - distancia_1_a_vieja_j - distancia_vieja_a_2_j
 
                 # calculamos el nuevo coste por km del camion
                 coste_cam_desp = camiones_copy.coste_km_1camion(camion)
@@ -1068,42 +1093,5 @@ def calcular_distancia_camion(camion: Camion) -> float:
 # dist L1
 def distancia(p1: tuple, p2: tuple) -> float:
     return abs(p2[0] - p1[0]) + abs(p2[1] - p1[1])
-
-def limpiar_centros_redundantes(camion: Camion, params: ProblemParameters) -> None:
-    # eliminar centros finales redundantes (si no hay peticiones después del centro anterior)
-    while camion.viajes and camion.viajes[-1][2] == -1:
-        # buscar penultimo centro
-        penult = None
-        for x in range(len(camion.viajes)-2, -1, -1):
-            if camion.viajes[x][2] == -1:
-                penult = x
-                break
-        # comprobar si hay peticiones entre penult+1 y el penultimo elemento (excluyendo ultimo centro)
-        start = penult + 1 if penult is not None else 0
-        hay_peticiones = any(v[2] != -1 for v in camion.viajes[start:len(camion.viajes)-1])
-        if not hay_peticiones:
-            camion.viajes.pop()
-        else:
-            break
-
-    # Recalcular num_viajes: numero de retornos al centro (excluyendo centro inicial)
-    total_centros = sum(1 for v in camion.viajes if v[2] == -1)
-    camion.num_viajes = max(0, total_centros - 1)
-
-    # Recalcular capacidad segun peticiones consecutivas desde el ultimo centro
-    ult_centro = None
-    for id in range(len(camion.viajes)-1, -1, -1):
-        if camion.viajes[id][2] == -1:
-            ult_centro = id
-            break
-    consec = 0
-    start = ult_centro + 1 if ult_centro is not None else 0
-    for v in camion.viajes[start:]:
-        if v[2] != -1:
-            consec += 1
-    camion.capacidad = params.capacidad_maxima - consec
-    if camion.capacidad < 0:
-        camion.capacidad = 0
-
 
 #######################################
