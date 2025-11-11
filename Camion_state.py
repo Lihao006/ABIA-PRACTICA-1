@@ -532,6 +532,7 @@ class Camiones(object):
 
             camion.recalcular_km()
         
+        camiones_copy.coste_km_rec()
         camiones_copy.pasos += 1
         return camiones_copy
     
