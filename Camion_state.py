@@ -249,7 +249,6 @@ class Camiones(object):
             pos_i = action.pos_i
             pos_j = action.pos_j
 
-            
             if cam_i == -1:
                 # peticion no asignada a camion, la anadimos al camion destino
                 dest = camiones_copy.camiones[cam_j]
