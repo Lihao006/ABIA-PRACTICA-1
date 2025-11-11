@@ -3,19 +3,22 @@ from aima.search import hill_climbing, simulated_annealing
 from CamionesyPeticiones_problem import CamionesyPeticiones
 from Camion_parameters import ProblemParameters
 from Camion_operators import *
-from Camion_state_opt import *
+from Camion_state import *
 
 if __name__ == '__main__':
 	# parametros por defecto
 	# ponemos prints en medio para saber en que paso estamos
 	params = ProblemParameters()
+
+	
 	# con la solucion inicial que consideramos adecuada
-	print('Generando solucion inicial...')
-	initial_state = generar_sol_inicial(params)
+	print('Generando solucion inicial aleatoria...')
+	initial_state = generar_sol_inicial_aleat(params)
 	print('Solucion inicial generada.')
 	print(f"Ganancias iniciales: {initial_state.ganancias_actual()}")
 	print(f'Coste_km inicial: {initial_state.coste_km_actual()}')
 	print(f'Coste peticiones no servidas inicial: {initial_state.coste_petno_actual()}')
+	print(f'Pasos iniciales: {initial_state.pasos}')
 	print(f"Heuristica inicial: {initial_state.heuristic()}")
 	print('Ejecutando Hill Climbing...')
 	hc_1 = hill_climbing(CamionesyPeticiones(initial_state))
@@ -44,7 +47,7 @@ if __name__ == '__main__':
 	print('Tiempo de ejecucion Hill Climbing:')
 	print(hc_1_t)
 	
-    # con la solucion inicial vacía
+    # con la solucion inicial greedy
 	print('Generando solucion inicial greedy...')
 	initial_state = generar_sol_inicial_greedy(params)
 	print('Solucion inicial generada.')
