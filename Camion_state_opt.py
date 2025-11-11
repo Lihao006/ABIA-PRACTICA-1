@@ -15,6 +15,7 @@ class Camion(object):
         self.capacidad = params.capacidad_maxima
         self.num_viajes = 0
         self.km_recorridos = 0.0
+        self.centro = viajes[0]
 
         self.viajes = viajes
         # Lista de ubicaciones de gasolineras asignadas y centros de distribucion que debe pasar
@@ -34,8 +35,18 @@ class Camion(object):
             nuevo = Camion(self.viajes.copy())
             nuevo.capacidad = self.capacidad
             nuevo.num_viajes = self.num_viajes
+            nuevo.centro = self.centro
             nuevo.km_recorridos = self.km_recorridos
             return nuevo
+    
+    def recalcular_km(self):
+        # recalcula los km recorridos por el camion
+        total = 0.0
+        for i in range(1, len(self.viajes)):
+            p1 = self.viajes[i - 1]
+            p2 = self.viajes[i]
+            total += distancia((p1[0], p1[1]), (p2[0], p2[1]))
+        self.km_recorridos = total
 
 class Camiones(object):
     def __init__(self, params: ProblemParameters, camiones: List[Camion], lista_pet_no_asig: List[tuple] = [], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0):
@@ -870,7 +881,7 @@ class Camiones(object):
     def coste_km_inicial(self) -> float:
         total_coste = 0
         for camion in self.camiones:
-            total_coste += calcular_distancia_camion(camion) * self.params.coste_km_max
+            total_coste += calcular_distancia_camion(camion) * self.params.coste_km
         self.coste_km = total_coste
         return self.coste_km
 
@@ -878,7 +889,7 @@ class Camiones(object):
     # ya sea anadiendo, eliminando o moviendo peticiones. Solo necesitamos saber el camion modificado
     # necesitamos la distancia anterior y la nueva distancia de este camion
     def coste_km_1camion(self, camion: Camion) -> float:
-        return camion.km_recorridos * self.params.coste_km_max
+        return camion.km_recorridos * self.params.coste_km
 
     # restamos el coste anterior de ese camion y sumamos el nuevo coste
     def mod_coste_km(self, coste_cam_ant: float, cost_cam_nue: float) -> float:
@@ -1098,8 +1109,7 @@ def generar_sol_inicial_greedy(params: ProblemParameters) -> Camiones:
 
 def volver_a_centro(camion: Camion) -> None:
     # Anadir un viaje de vuelta al centro de distribucion, las restricciones se comprueban antes de llamar a esta funcion
-    centro_origen = camion.viajes[0]
-    camion.viajes.append((centro_origen[0], centro_origen[1], -1))
+    camion.viajes.append((camion.centro[0], camion.centro[1], -1))
     camion.num_viajes += 1
     camion.capacidad = params.capacidad_maxima
 
