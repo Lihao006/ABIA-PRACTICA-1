@@ -96,7 +96,7 @@ class Camiones(object):
                             yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 1)
 
                         # si estamos en el último centro, miramos si podemos anadir viajes
-                        else:
+                        elif pos_j == len(camion_j.viajes) - 1:
                             if camion_j.num_viajes < params.max_viajes:
                                 yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 1)
 
@@ -119,7 +119,7 @@ class Camiones(object):
                                 if pos_j + 2 < len(camion_j.viajes) and camion_j.viajes[pos_j + 2][2] == -1:
                                     yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
                                 # si estamos en el último centro, miramos si podemos anadir viajes
-                                else:
+                                elif pos_j == len(camion_j.viajes) - 1:
                                     if camion_j.num_viajes < params.max_viajes:
                                         yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
                                             
@@ -304,10 +304,10 @@ class Camiones(object):
 
                 # miramos si es una peticion unica en un viaje en el camion origen
                 if camion.viajes[pos_i - 1][2] == -1 and camion.viajes[pos_i + 1][2] == -1:
-                    # si es asi, eliminamos el centro anterior y el viaje de peticion
-                    camion.viajes.pop(pos_i - 1)
-                    # como q hemos eliminado el centro anterior, el indice de la peticion baja en 1
-                    camion.viajes.pop(pos_i - 1)      
+                    # si es asi, eliminamos el centro redundante y el viaje de peticion
+                    camion.viajes.pop(pos_i)
+                    # como q hemos eliminado el viaje de peticion, el indice del centro baja en 1
+                    camion.viajes.pop(pos_i)
                     camion.num_viajes -= 1
                     # ajustamos la posicion j si es necesario
                     if pos_i < pos_j:
