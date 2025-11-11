@@ -69,7 +69,7 @@ class Camiones(object):
         # para cada peticion no asignada en cada camion, puede ir a cualquier camion cumpliendo restricciones
         for pet in self.lista_pet_no_asig:
             for cam_j, camion_j in enumerate(self.camiones):
-                for pos_j in range(len(camion_j.viajes) + 1):
+                for pos_j in range(len(camion_j.viajes)):
                     # comprobamos que no se convierta en 3 peticiones consecutivas
                     # solo se podra insertar si:
                     # la pos_j es un centro y pos_j + 2 tambien es centro, aplicamos el operador para insetar depués de pos_j y pos_j + 1
@@ -105,7 +105,7 @@ class Camiones(object):
                 if pet[2] != -1:
                     # es una peticion
                     for cam_j, camion_j in enumerate(self.camiones):
-                        for pos_j in range(len(camion_j.viajes) + 1):
+                        for pos_j in range(len(camion_j.viajes)):
                             if cam_j == cam_i and (pos_j == pet_i or pos_j == pet_i + 1):
                                 # no mover dentro del mismo camion a la misma posicion
                                 continue
@@ -137,7 +137,7 @@ class Camiones(object):
                                             yield MoverPeticion(pet, cam_i, cam_j, pet_i, pos_j + 1)
                                             
                                 
-
+        """
         # MoverAntes
         # de un camion, adelantar una peticion a una posicion de la lista de viajes
         for cam_i in range(len(self.camiones)):
@@ -148,7 +148,7 @@ class Camiones(object):
                 viaje = camion.viajes[viaje_i]
                 if viaje[2] != -1:
                     # es una peticion
-                    """
+                    
                     # miramos que la poscion anterior no sea un centro
                     
                     esta parte es absolutamente inutil, ya que no varia ni las ganancias ni los costes
@@ -158,7 +158,7 @@ class Camiones(object):
                         # para este caso, no variara la distancia recorrida porque partimos y terminamos en el mismo centro pasando por las mismas gasolineras, pero en otro orden,
                         # tampoco variara el numero de viajes
                         yield MoverAntes(cam_i, viaje_i, viaje_i - 1)
-                    """
+                    
                     if camion.viajes[viaje_i - 1][2] == -1:
                         # si la anterior es centro movemos dos posiciones adelante, sin que haya 3 peticiones seguidas
                         if viaje_i - 2 >= 1:
@@ -179,7 +179,8 @@ class Camiones(object):
                                 if distancia_nueva <= self.params.max_km:
                                     # en apply_actions miramos si viaje_i + 1 es un centro para eliminarlo
                                     yield MoverAntes(cam_i, viaje, viaje_i, viaje_i - 2)
-
+        """
+        """
         # MoverDespues 
         # de un camion, retrasar una peticion a una posicion de la lista de viajes
         for cam_i in range(len(self.camiones)):
@@ -226,43 +227,43 @@ class Camiones(object):
                                     if distancia_nueva <= self.params.max_km:
                                         # si se puede lo anadimos al final del todo, y en apply_actions forzamos volver al centro
                                         yield MoverDespues(cam_i, viaje, viaje_i, len(camion.viajes))
-
+        """
         # AsignarPeticion
         for pet in self.lista_pet_no_asig:
             for camion in self.camiones:
                 # tiene que tener recorridos y viajes disponibles
-                assert camion.num_viajes <= self.params.max_viajes and camion.km_recorridos < self.params.max_km
-                # el ultimo viaje es un centro
-                for viaje in range(len(camion.viajes)):
-                    if camion.viajes[viaje][2] == -1:
-                        if viaje + 2 < len(camion.viajes):
-                            if camion.viajes[viaje + 2][2] == -1:
+                if camion.num_viajes <= self.params.max_viajes and camion.km_recorridos < self.params.max_km:
+                    # el ultimo viaje es un centro
+                    for viaje in range(len(camion.viajes)):
+                        if camion.viajes[viaje][2] == -1:
+                            if viaje + 2 < len(camion.viajes):
+                                if camion.viajes[viaje + 2][2] == -1:
+                                    # condicion: si asignamos la peticion, el camion debe poder realizar todos los demás viajes
+                                    # restamos la distancia original y le sumamos las dos nuevas distancias al km_recorridos del camion
+                                    distancia_1_a_nueva = distancia((camion.viajes[viaje][0], camion.viajes[viaje][1]), (pet[0], pet[1]))
+                                    distancia_nueva_a_centro = distancia((pet[0], pet[1]), (camion.viajes[0][0], camion.viajes[0][1]))
+                                    
+                                    distancia_1_a_centro = distancia((camion.viajes[viaje][0], camion.viajes[viaje][1]), (camion.viajes[0][0], camion.viajes[0][1])) 
+                                    
+                                    distancia_nueva = camion.km_recorridos + distancia_1_a_nueva + distancia_nueva_a_centro - distancia_1_a_centro
+                                    # si no excede el maximo de km, generamos el operador
+                                    if distancia_nueva < self.params.max_km:
+                                        num_viaje = viaje + 1
+                                        yield AsignarPeticion(pet, self.camiones.index(camion), num_viaje)
+                        
+                            # si estamos en el último viaje, que es un centro, y aun nos puede hacer viajes, miraremos si lo podemos anadir al final
+                            elif camion.num_viajes < self.params.max_viajes:
                                 # condicion: si asignamos la peticion, el camion debe poder realizar todos los demás viajes
-                                # restamos la distancia original y le sumamos las dos nuevas distancias al km_recorridos del camion
                                 distancia_1_a_nueva = distancia((camion.viajes[viaje][0], camion.viajes[viaje][1]), (pet[0], pet[1]))
                                 distancia_nueva_a_centro = distancia((pet[0], pet[1]), (camion.viajes[0][0], camion.viajes[0][1]))
                                 
-                                distancia_1_a_centro = distancia((camion.viajes[viaje][0], camion.viajes[viaje][1]), (camion.viajes[0][0], camion.viajes[0][1])) 
+                                distancia_1_a_centro = distancia((camion.viajes[viaje][0], camion.viajes[viaje][1]), (camion.viajes[0][0], camion.viajes[0][1]))
                                 
                                 distancia_nueva = camion.km_recorridos + distancia_1_a_nueva + distancia_nueva_a_centro - distancia_1_a_centro
                                 # si no excede el maximo de km, generamos el operador
                                 if distancia_nueva < self.params.max_km:
-                                    num_viaje = viaje + 1
+                                    num_viaje = len(camion.viajes)
                                     yield AsignarPeticion(pet, self.camiones.index(camion), num_viaje)
-                       
-                        # si estamos en el último viaje, que es un centro, y aun nos puede hacer viajes, miraremos si lo podemos anadir al final
-                        elif camion.num_viajes != self.params.max_viajes:
-                            # condicion: si asignamos la peticion, el camion debe poder realizar todos los demás viajes
-                            distancia_1_a_nueva = distancia((camion.viajes[viaje][0], camion.viajes[viaje][1]), (pet[0], pet[1]))
-                            distancia_nueva_a_centro = distancia((pet[0], pet[1]), (camion.viajes[0][0], camion.viajes[0][1]))
-                            
-                            distancia_1_a_centro = distancia((camion.viajes[viaje][0], camion.viajes[viaje][1]), (camion.viajes[0][0], camion.viajes[0][1]))
-                            
-                            distancia_nueva = camion.km_recorridos + distancia_1_a_nueva + distancia_nueva_a_centro - distancia_1_a_centro
-                            # si no excede el maximo de km, generamos el operador
-                            if distancia_nueva < self.params.max_km:
-                                num_viaje = len(camion.viajes)
-                                yield AsignarPeticion(pet, self.camiones.index(camion), num_viaje)
 
         #SwapPeticiones
 
@@ -394,6 +395,15 @@ class Camiones(object):
                     cost_org_ant = camiones_copy.coste_km_1camion(org)
                     cost_dest_ant = camiones_copy.coste_km_1camion(dest)
 
+                    # recalcular km recorridos por camion origen antes de eliminar la peticion para no tener problemas de indices
+                    # lo podriamos haber hecho con los demás
+                    distancia_1_elim_org = distancia((org.viajes[pos_i - 1][0], org.viajes[pos_i - 1][1]), (pet[0], pet[1]))
+                    distancia_elim_2_org = distancia((pet[0], pet[1]), (org.viajes[pos_i + 1][0], org.viajes[pos_i + 1][1]))
+
+                    distancia_1_2_org = distancia((org.viajes[pos_i - 1][0], org.viajes[pos_i - 1][1]), (org.viajes[pos_i + 1][0], org.viajes[pos_i + 1][1]))
+                    
+                    org.km_recorridos = org.km_recorridos - distancia_1_elim_org - distancia_elim_2_org + distancia_1_2_org
+                    
                     # miramos si es una peticion unica en un viaje en el camion origen
                     if org.viajes[pos_i - 1][2] == -1 and org.viajes[pos_i + 1][2] == -1:
                         # si es asi, eliminamos el centro anterior y el viaje de peticion
@@ -405,14 +415,6 @@ class Camiones(object):
                         # si no es una peticion unica, solo eliminamos el viaje de peticion
                         org.viajes.pop(pos_i)
 
-                    # recalcular km rec por el camion origen
-                    distancia_1_elim_org = distancia((org.viajes[pos_i - 1][0], org.viajes[pos_i - 1][1]), (pet[0], pet[1]))
-                    distancia_elim_2_org = distancia((pet[0], pet[1]), (org.viajes[pos_i + 1][0], org.viajes[pos_i + 1][1]))
-
-                    distancia_1_2_org = distancia((org.viajes[pos_i - 1][0], org.viajes[pos_i - 1][1]), (org.viajes[pos_i + 1][0], org.viajes[pos_i + 1][1]))
-
-                    org.km_recorridos = org.km_recorridos - distancia_1_elim_org - distancia_elim_2_org + distancia_1_2_org
-                    
                     cost_org_desp = camiones_copy.coste_km_1camion(org)
                             
                     if pos_j < len(dest.viajes):
@@ -453,6 +455,12 @@ class Camiones(object):
 
                 # guardamos el coste por km antes
                 coste_cam_ant = camiones_copy.coste_km_1camion(camion)
+                
+                # dist que lo usaremos despues
+                distancia_1_elim = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (pet[0], pet[1]))
+                distancia_elim_2 = distancia((pet[0], pet[1]), (camion.viajes[pos_i + 1][0], camion.viajes[pos_i + 1][1]))
+
+                distancia_1_2 = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (camion.viajes[pos_i + 1][0], camion.viajes[pos_i + 1][1]))
 
                 # miramos si es una peticion unica en un viaje en el camion origen
                 if camion.viajes[pos_i - 1][2] == -1 and camion.viajes[pos_i + 1][2] == -1:
@@ -470,16 +478,6 @@ class Camiones(object):
                     # ajustamos la posicion j si es necesario
                     if pos_i < pos_j:
                         pos_j -= 1
-
-                # eliminamos la peticion de su posicion original
-                camion.viajes.pop(pos_i)
-
-                # dist que lo usaremos despues
-                distancia_1_elim = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (pet[0], pet[1]))
-                distancia_elim_2 = distancia((pet[0], pet[1]), (camion.viajes[pos_i + 1][0], camion.viajes[pos_i + 1][1]))
-
-                distancia_1_2 = distancia((camion.viajes[pos_i - 1][0], camion.viajes[pos_i - 1][1]), (camion.viajes[pos_i + 1][0], camion.viajes[pos_i + 1][1]))
-
 
                 if pos_j < len(camion.viajes):
                     # cuando no se inserta después del último viaje
@@ -505,15 +503,16 @@ class Camiones(object):
                     # tiene que ir y volver, menos las distancias eliminadas y la nueva 
                     camion.km_recorridos = camion.km_recorridos - distancia_1_elim - distancia_elim_2 + distancia_1_2 + 2 * distancia_centro_nueva
 
-            # calculamos el nuevo coste por km del camion
-            coste_cam_desp = camiones_copy.coste_km_1camion(camion)
+                # calculamos el nuevo coste por km del camion
+                coste_cam_desp = camiones_copy.coste_km_1camion(camion)
 
-            # mod coste km
-            camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
+                # mod coste km
+                camiones_copy.mod_coste_km(coste_cam_ant, coste_cam_desp)
 
             # las ganancias y el coste por peticiones no servidas no cambian al mover una peticion entre camiones
             return camiones_copy
-
+        
+        """
         # MoverAntes: adelantar una peticion dentro del mismo camion (no anade viajes pero puede reducirlos)
         if isinstance(action, MoverAntes):
             cam_i = action.cam_i
@@ -632,7 +631,7 @@ class Camiones(object):
             # no cambiamos ganancias ni coste por peticiones no servidas
 
             return camiones_copy
-
+        """
         # AsignarPeticion
         if isinstance(action, AsignarPeticion):
             camion = camiones_copy.camiones[action.cam_i]
@@ -645,14 +644,25 @@ class Camiones(object):
             if num_viaje < len(camion.viajes):
                 # anadir viaje en la posición indicada
                 camion.viajes.insert(num_viaje, pet)
+
+                # calculamos las distancias que usaremos para recalcular los km recorridos del camion
+                distancia_1_a_nueva = distancia((camion.viajes[num_viaje - 1][0], camion.viajes[num_viaje - 1][1]), (pet[0], pet[1]))
+                distancia_nueva_a_2 = distancia((pet[0], pet[1]), (camion.viajes[num_viaje + 1][0], camion.viajes[num_viaje + 1][1]))
+                
+                distancia_1_a_2 = distancia((camion.viajes[num_viaje - 1][0], camion.viajes[num_viaje - 1][1]), (camion.viajes[num_viaje + 1][0], camion.viajes[num_viaje + 1][1]))
+
+                camion.km_recorridos = camion.km_recorridos + distancia_1_a_nueva + distancia_nueva_a_2 - distancia_1_a_2
+
             elif num_viaje == len(camion.viajes):
                 # si se lo anadimos en la ultima posicion, tiene que volver al centro
                 camion.viajes.append(pet)
                 camion.num_viajes += 1
                 volver_a_centro(camion)
 
-            # recalculamos los km_recorridos del camion
-            calcular_distancia_camion(camion)
+                # calculamos las distancias que usaremos para recalcular los km recorridos del camion
+                distancia_nueva_a_centro = distancia((pet[0], pet[1]), (camion.viajes[0][0], camion.viajes[0][1]))
+                # tiene que ir y volver
+                camion.km_recorridos = camion.km_recorridos + 2 * distancia_nueva_a_centro
 
             # calculamos el nuevo coste por km del camion
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
@@ -774,17 +784,30 @@ class Camiones(object):
                 if camion.viajes[viaje] == pet:
                     if camion.viajes[viaje -1][2] == - 1 and camion.viajes[viaje +1][2] == -1:
                         #miramos si hay que quitar centros redundantes y recalculamos num_viajes
+                        
+                        # calculamos las distancias que usaremos para recalcular los km recorridos del camion
+                        distancia_centro_elim = distancia((camion.viajes[0][0], camion.viajes[0][1]), (pet[0], pet[1]))
+
                         # si la peticion esta entre dos centros, eliminamos tambien uno de los centros para evitar redundancia
                         camion.viajes.remove(camion.viajes[viaje -1])
                         # el indice se reduce en 1 tras eliminar el centro anterior
                         camion.viajes.remove(camion.viajes[viaje -1])
+                        camion.num_viajes -= 1
+                        
+                        # recalcular km recorridos del camion
+                        camion.km_recorridos = camion.km_recorridos - 2 * distancia_centro_elim
                     else:
+                        # calc distancias antes de eliminar la peticion
+                        distancia_1_elim = distancia((camion.viajes[viaje - 1][0], camion.viajes[viaje - 1][1]), (pet[0], pet[1]))
+                        distancia_elim_2 = distancia((pet[0], pet[1]), (camion.viajes[viaje + 1][0], camion.viajes[viaje + 1][1]))
+
+                        distancia_1_2 = distancia((camion.viajes[viaje - 1][0], camion.viajes[viaje - 1][1]), (camion.viajes[viaje + 1][0], camion.viajes[viaje + 1][1]))   
+
+                        camion.km_recorridos = camion.km_recorridos - distancia_1_elim - distancia_elim_2 + distancia_1_2
+
                         # si no, simplemente eliminamos la peticion
                         camion.viajes.remove(camion.viajes[viaje])
                     break
-            
-            # recalculamos los km_recorridos del camion
-            calcular_distancia_camion(camion)
 
             # calculamos el nuevo coste por km del camion
             coste_cam_desp = camiones_copy.coste_km_1camion(camion)
@@ -1086,7 +1109,6 @@ def calcular_distancia_camion(camion: Camion) -> float:
     total_distance = 0
     for i in range(1, len(camion.viajes)):
         total_distance += distancia(camion.viajes[i-1][:2], camion.viajes[i][:2])
-    assert total_distance >= 0 and total_distance <= params.max_km
     camion.km_recorridos = total_distance
     return total_distance
 
