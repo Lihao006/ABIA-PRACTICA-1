@@ -2,7 +2,8 @@ class CamionOperators(object):
     pass
 
 class MoverPeticion(CamionOperators):
-    def __init__(self, pet_i: tuple, cam_i: int, cam_j: int, pos_i: int, pos_j: int):
+    # pet_i puede ser una tupla (para peticiones no asignadas) o int (para peticiones asignadas)
+    def __init__(self, pet_i:tuple, cam_i: int, cam_j: int, pos_i: int, pos_j: int):
         self.pet_i = pet_i
         self.cam_i = cam_i
         self.cam_j = cam_j
@@ -13,16 +14,17 @@ class MoverPeticion(CamionOperators):
         return f"Mover la petición {self.pet_i} del camión {self.cam_i} al camión {self.cam_j} en la posición {self.pos_j}"
 
 class AsignarPeticion(CamionOperators):
-    def __init__(self, pet_i: tuple, cam_i: int, num_viaje: int):
+    def __init__(self, pet_i: tuple, cam_i: int, pos_i: int):
         self.pet_i = pet_i
         self.cam_i = cam_i
-        self.num_viaje = num_viaje
+        self.pos_i = pos_i
 
     def __repr__(self) -> str:
-        return f"Asignar petición {self.pet_i} al camión {self.cam_i} en su viaje {self.num_viaje}"
+        return f"Asignar petición {self.pet_i} al camión {self.cam_i} en su viaje {self.pos_i}"
 
 class SwapPeticiones(CamionOperators):
-    def __init__(self, pet_i: int, pet_j: int, cam_i: int, cam_j: int):
+    # pet_i y pet_j pueden ser tuplas (para peticiones no asignadas) o int (para peticiones asignadas)
+    def __init__(self, pet_i, pet_j, cam_i: int, cam_j: int):
         self.pet_i = pet_i
         self.pet_j = pet_j
         self.cam_i = cam_i
