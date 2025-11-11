@@ -52,13 +52,14 @@ class Camion(object):
         return total
 
 class Camiones(object):
-    def __init__(self, params: ProblemParameters, camiones: List[Camion], lista_pet_no_asig: List[tuple] = [], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0):
+    def __init__(self, params: ProblemParameters, camiones: List[Camion], lista_pet_no_asig: List[tuple] = [], ganancias: float = 0, coste_km: float = 0, coste_petno: float = 0, pasos: int =0):
         self.params = params
         self.camiones = camiones
         self.lista_pet_no_asig = lista_pet_no_asig
         self.ganancias = ganancias
         self.coste_km = coste_km
         self.coste_petno = coste_petno
+        self.pasos = pasos
         # Crear un camion por cada centro de distribucion si la lista de camiones está vacia
         # Si multiplicidad > 1, varios camiones estarán en la misma posicion inicial
         if len(self.camiones) == 0:
@@ -71,7 +72,7 @@ class Camiones(object):
         # Afegim el copy per cada llista de camions
         camiones_copy = [camion.copy() for camion in self.camiones]
         lista_pet_no_asig_copy = [tuple(pet) for pet in self.lista_pet_no_asig]
-        return Camiones(self.params, camiones_copy, lista_pet_no_asig_copy, self.ganancias, self.coste_km, self.coste_petno)
+        return Camiones(self.params, camiones_copy, lista_pet_no_asig_copy, self.ganancias, self.coste_km, self.coste_petno, self.pasos)
 
     def generate_actions(self) -> Generator[CamionOperators, None, None]:
         """
@@ -531,7 +532,8 @@ class Camiones(object):
             camiones_copy.mod_coste_petno(pet, "eliminar")
 
             camion.recalcular_km()
-
+        
+        camiones_copy.pasos += 1
         return camiones_copy
     
     def ganancias_actual(self) -> float:
