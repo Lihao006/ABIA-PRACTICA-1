@@ -63,9 +63,10 @@ class Camiones(object):
         # Crear un camion por cada centro de distribucion si la lista de camiones está vacia
         # Si multiplicidad > 1, varios camiones estarán en la misma posicion inicial
         if len(self.camiones) == 0:
+            # Crear una instancia separada de Camion por cada multiplicidad.
             for c in range(len(centros.centros)):
-                camion = Camion([(centros.centros[c].cx, centros.centros[c].cy, -1)])
                 for _ in range(params.multiplicidad):
+                    camion = Camion([(centros.centros[c].cx, centros.centros[c].cy, -1)])
                     self.camiones.append(camion)
 
     def copy(self) -> 'Camiones':
