@@ -123,7 +123,7 @@ class Camiones(object):
                                 elif pos_j == len(camion_j.viajes) - 1:
                                     if camion_j.num_viajes < params.max_viajes:
                                         yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
-        """                                    
+        """              
         # MoverAntes
         # de un camion, adelantar una peticion a una posicion de la lista de viajes
         for cam_i, camion in enumerate(self.camiones):
@@ -136,13 +136,13 @@ class Camiones(object):
                     
                     # miramos que la poscion anterior no sea un centro
                     
-                    esta parte es absolutamente inutil, ya que no varia ni las ganancias ni los costes
-                    simplemente se intercambia el orden de las peticiones entre dos viajes a centros, pero la distancia recorrida en este viaje es la misma
+                    #esta parte es absolutamente inutil, ya que no varia ni las ganancias ni los costes
+                    #simplemente se intercambia el orden de las peticiones entre dos viajes a centros, pero la distancia recorrida en este viaje es la misma
                     
-                    if camion.viajes[viaje_i - 1][2] != -1:
+                    #if camion.viajes[viaje_i - 1][2] != -1:
                         # para este caso, no variara la distancia recorrida porque partimos y terminamos en el mismo centro pasando por las mismas gasolineras, pero en otro orden,
                         # tampoco variara el numero de viajes
-                        yield MoverAntes(cam_i, viaje_i, viaje_i - 1)
+                    #    yield MoverAntes(cam_i, viaje_i, viaje_i - 1)
                     
                     if camion.viajes[viaje_i - 1][2] == -1:
                         # si la anterior es centro movemos dos posiciones adelante, sin que haya 3 peticiones seguidas
@@ -193,8 +193,8 @@ class Camiones(object):
                             elif camion.num_viajes < self.params.max_viajes:
                                 num_viaje = len(camion.viajes)
                                 yield AsignarPeticion(pet, self.camiones.index(camion), num_viaje)
+        
         """
-
         #SwapPeticiones
         # para peticiones no asignadas, intercambiamos una peticion no asignada con una asignada en un camion
         for pet in self.lista_pet_no_asig:
@@ -224,14 +224,14 @@ class Camiones(object):
                         
                         # si no excede el maximo de km, generamos el operador
                         yield SwapPeticiones(pet_i, pet_j, ii, jj, cam_i, cam_j)
-
+        """
         # Eliminar Peticiones
         # tiene que ser una peticion asignada
         for cam_i, camion in enumerate(self.camiones):
             for pet_i in range(len(camion.viajes)):
                 if camion.viajes[pet_i][2] != -1:
                     yield EliminarPeticiones(camion.viajes[pet_i], cam_i)
-
+        """
     def apply_action(self, action: CamionOperators) -> 'Camiones':
         
         camiones_copy = self.copy()
@@ -551,7 +551,7 @@ class Camiones(object):
                         # no hará falta recalcular los km de todos los camiones
                         camiones_copy.coste_km = float('inf')
                         return camiones_copy
-
+        """
         # EliminarPeticiones
         if isinstance(action, EliminarPeticiones):
             pet = action.pet_i
@@ -584,7 +584,7 @@ class Camiones(object):
             camion.recalcular_km()
             
             # eliminar viajes no superará el max de km
-        
+            """
         camiones_copy.coste_km_rec()
         camiones_copy.pasos += 1
         return camiones_copy

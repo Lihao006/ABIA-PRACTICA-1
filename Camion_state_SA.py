@@ -339,7 +339,7 @@ class Camiones(object):
                     # no hará falta recalcular los km de todos los camiones
                     camiones_copy.coste_km = float('inf')
                     return camiones_copy
-
+        """
         # MoverAntes: adelantar una peticion dentro del mismo camion (no anade viajes pero puede reducirlos)
         if isinstance(action, MoverAntes):
             cam_i = action.cam_i
@@ -448,7 +448,7 @@ class Camiones(object):
                     # no hará falta recalcular los km de todos los camiones
                     camiones_copy.coste_km = float('inf')
                     return camiones_copy
-        
+        """
         #SwapPeticiones
         if isinstance(action, SwapPeticiones):
             pet_i = action.pet_i
