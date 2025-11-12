@@ -267,6 +267,13 @@ class Camiones(object):
                 camiones_copy.mod_coste_petno(pet, 'asignar')
 
                 dest.recalcular_km()
+
+                if dest.km_recorridos > self.params.max_km:
+                    # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # no hará falta recalcular los km de todos los camiones
+                    # de esta manera, la heuristica del sucesor sera -infinito y el hill climbing lo descartara
+                    camiones_copy.coste_km = float('inf')
+                    return camiones_copy
                 
             elif cam_j != cam_i:
                 # para camiones diferentes
@@ -297,6 +304,12 @@ class Camiones(object):
                     
                 org.recalcular_km()
                 dest.recalcular_km()
+
+                if dest.km_recorridos > self.params.max_km or org.km_recorridos > self.params.max_km:
+                    # si alguno de los camiones resultantes excede el maximo de km, forzamos un coste infinito
+                    # no hará falta recalcular los km de todos los camiones
+                    camiones_copy.coste_km = float('inf')
+                    return camiones_copy
 
             else:
                 # para camiones iguales
@@ -332,6 +345,12 @@ class Camiones(object):
                 # recalculamos los km_recorridos del camion
                 camion.recalcular_km()
 
+                if camion.km_recorridos > self.params.max_km:
+                    # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # no hará falta recalcular los km de todos los camiones
+                    camiones_copy.coste_km = float('inf')
+                    return camiones_copy
+
         # MoverAntes: adelantar una peticion dentro del mismo camion (no anade viajes pero puede reducirlos)
         if isinstance(action, MoverAntes):
             cam_i = action.cam_i
@@ -360,6 +379,12 @@ class Camiones(object):
             
             # recalculamos los km_recorridos del camion
             camion.recalcular_km()
+
+            if camion.km_recorridos > self.params.max_km:
+                    # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # no hará falta recalcular los km de todos los camiones
+                    camiones_copy.coste_km = float('inf')
+                    return camiones_copy
 
         # MoverDespues: retrasar una peticion dentro del mismo camion (puede anadir viajes)
         if isinstance(action, MoverDespues):
@@ -398,6 +423,12 @@ class Camiones(object):
             camion.recalcular_km()
             # no cambiamos ganancias ni coste por peticiones no servidas
 
+            if camion.km_recorridos > self.params.max_km:
+                    # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # no hará falta recalcular los km de todos los camiones
+                    camiones_copy.coste_km = float('inf')
+                    return camiones_copy
+
         # AsignarPeticion
         if isinstance(action, AsignarPeticion):
             camion = camiones_copy.camiones[action.cam_i]
@@ -420,8 +451,14 @@ class Camiones(object):
             # modificamos los valores de costes y ganancias de la nueva solucion
             camiones_copy.mod_ganancias(action.pet_i, "asignar")
             camiones_copy.mod_coste_petno(action.pet_i, "asignar")
-
+            
             camion.recalcular_km()
+
+            if camion.km_recorridos > self.params.max_km:
+                    # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # no hará falta recalcular los km de todos los camiones
+                    camiones_copy.coste_km = float('inf')
+                    return camiones_copy
         
         #SwapPeticiones
         if isinstance(action, SwapPeticiones):
@@ -458,6 +495,13 @@ class Camiones(object):
                 # recompute km and cost for the affected camion
                 dest.recalcular_km()
 
+                if dest.km_recorridos > self.params.max_km:
+                    # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # no hará falta recalcular los km de todos los camiones
+                    camiones_copy.coste_km = float('inf')
+                    return camiones_copy
+
+
             else:
                 # entre dos camiones diferentes o el mismo camion
                 if cam_i != cam_j:
@@ -480,6 +524,12 @@ class Camiones(object):
                     org.recalcular_km()
                     dest.recalcular_km()
 
+                    if org.km_recorridos > self.params.max_km or dest.km_recorridos > self.params.max_km:
+                        # si alguno de los camiones resultantes excede el maximo de km, forzamos un coste infinito
+                        # no hará falta recalcular los km de todos los camiones
+                        camiones_copy.coste_km = float('inf')
+                        return camiones_copy
+
                 else:
                     # si son el mismo camion
                     camion = camiones_copy.camiones[cam_i]
@@ -494,6 +544,12 @@ class Camiones(object):
 
                     # las ganancias y el coste por peticiones no servidas no cambian al intercambiar una peticion entre camiones
                     camion.recalcular_km()
+
+                    if camion.km_recorridos > self.params.max_km:
+                        # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                        # no hará falta recalcular los km de todos los camiones
+                        camiones_copy.coste_km = float('inf')
+                        return camiones_copy
 
         # EliminarPeticiones
         if isinstance(action, EliminarPeticiones):
@@ -525,6 +581,8 @@ class Camiones(object):
             camiones_copy.mod_coste_petno(pet, "eliminar")
 
             camion.recalcular_km()
+            
+            # eliminar viajes no superará el max de km
         
         camiones_copy.coste_km_rec()
         camiones_copy.pasos += 1
