@@ -298,12 +298,14 @@ class Camiones(object):
                 dest = camiones_copy.camiones[cam_j]
 
                 # miramos si es una peticion unica en un viaje en el camion origen
-                if org.viajes[pos_i - 1][2] == -1 and org.viajes[pos_i + 1][2] == -1:
-                    # si es asi, eliminamos el centro anterior y el viaje de peticion
-                    org.viajes.pop(pos_i - 1)
-                    # como q hemos eliminado el centro anterior, el indice de la peticion baja en 1
-                    org.viajes.pop(pos_i - 1)
-                    org.num_viajes -= 1
+                if org.viajes[pos_i - 1][2] == -1:
+                    # comprobamos que exista pos_i + 1
+                    if pos_i + 1 < len(org.viajes) and org.viajes[pos_i + 1][2] == -1:
+                        # si es asi, eliminamos el centro anterior y el viaje de peticion
+                        org.viajes.pop(pos_i - 1)
+                        # como q hemos eliminado el centro anterior, el indice de la peticion baja en 1
+                        org.viajes.pop(pos_i - 1)
+                        org.num_viajes -= 1
                 else:
                     # si no es una peticion unica, solo eliminamos el viaje de peticion
                     org.viajes.pop(pos_i)
@@ -334,15 +336,17 @@ class Camiones(object):
                 camion = camiones_copy.camiones[action.cam_i]
 
                 # miramos si es una peticion unica en un viaje en el camion origen
-                if camion.viajes[pos_i - 1][2] == -1 and camion.viajes[pos_i + 1][2] == -1:
-                    # si es asi, eliminamos el centro redundante y el viaje de peticion
-                    camion.viajes.pop(pos_i)
-                    # como q hemos eliminado el viaje de peticion, el indice del centro baja en 1
-                    camion.viajes.pop(pos_i)
-                    camion.num_viajes -= 1
-                    # ajustamos la posicion j si es necesario
-                    if pos_i < pos_j:
-                        pos_j -= 2
+                if camion.viajes[pos_i - 1][2] == -1:
+                    # comprobamos que exista pos_i + 1
+                    if pos_i + 1 < len(camion.viajes) and camion.viajes[pos_i + 1][2] == -1:
+                        # si es asi, eliminamos el centro redundante y el viaje de peticion
+                        camion.viajes.pop(pos_i)
+                        # como q hemos eliminado el viaje de peticion, el indice del centro baja en 1
+                        camion.viajes.pop(pos_i)
+                        camion.num_viajes -= 1
+                        # ajustamos la posicion j si es necesario
+                        if pos_i < pos_j:
+                            pos_j -= 2
                 else:
                     # si no es una peticion unica, solo eliminamos el viaje de peticion
                     camion.viajes.pop(pos_i)
