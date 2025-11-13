@@ -7,13 +7,14 @@ capacidad_maxima = 2
 
 # Parámetros variables
 seed = 1234
-num_gasolineras = 100
-num_centros = 10
+num_gasolineras = 200
+num_centros = 20
 multiplicidad = 1
 
 
+
 class ProblemParameters(object):
-    def __init__(self, max_km: int=max_km, max_viajes: int=max_viajes, valor_deposito: int=valor_deposito, coste_km: int=coste_km, capacidad_maxima: int=capacidad_maxima):
+    def __init__(self, max_km: int=max_km, max_viajes: int=max_viajes, valor_deposito: int=valor_deposito, coste_km: int=coste_km, capacidad_maxima: int=capacidad_maxima, seed: int=seed, num_gasolineras: int=num_gasolineras, num_centros: int=num_centros, multiplicidad: int=multiplicidad):
         self.max_km = max_km
         self.max_viajes = max_viajes
         self.valor_deposito = valor_deposito
