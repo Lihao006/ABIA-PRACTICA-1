@@ -14,6 +14,7 @@ class Camion(object):
     def __init__(self, viajes: List[tuple]):
         self.capacidad = params.capacidad_maxima
         self.num_viajes = 0
+        self.num_pet = 0
         self.km_recorridos = 0.0
         self.centro = viajes[0]
 
@@ -37,18 +38,25 @@ class Camion(object):
             nuevo.num_viajes = self.num_viajes
             nuevo.centro = self.centro
             nuevo.km_recorridos = self.km_recorridos
+            nuevo.num_pet = self.num_pet
             return nuevo
     
     # funcion para calcular la distancia total recorrida por un solo camion
     # tmb modifica el atributo km_recorridos del camion
     def recalcular_km(self) -> float:
         # recalcula los km recorridos por el camion
+        # tambien recuenta el num de peticiones servidas
         total = 0.0
+        num_peti = 0
         for i in range(1, len(self.viajes)):
             p1 = self.viajes[i - 1]
             p2 = self.viajes[i]
             total += distancia((p1[0], p1[1]), (p2[0], p2[1]))
+            if p2[2] != -1:
+                # es una peticion
+                num_peti += 1
         self.km_recorridos = total
+        self.num_pet = num_peti
         return total
 
 class Camiones(object):
@@ -63,11 +71,12 @@ class Camiones(object):
         # Crear un camion por cada centro de distribucion si la lista de camiones está vacia
         # Si multiplicidad > 1, varios camiones estarán en la misma posicion inicial
         if len(self.camiones) == 0:
-            # Crear una instancia separada de Camion por cada multiplicidad.
-            for c in range(len(centros.centros)):
-                for _ in range(params.multiplicidad):
-                    camion = Camion([(centros.centros[c].cx, centros.centros[c].cy, -1)])
-                    self.camiones.append(camion)
+            # Crear una instancia separada de Camion por cada entrada en centros.centros.
+            # CentrosDistribucion ya repite cada centro según la multiplicidad,
+            # por lo que no debemos volver a multiplicarlos aquí (antes lo hacíamos, por lo nos daban resultados raros).
+            for centro in centros.centros:
+                camion = Camion([(centro.cx, centro.cy, -1)])
+                self.camiones.append(camion)
 
     def copy(self) -> 'Camiones':
         # Afegim el copy per cada llista de camions
@@ -81,8 +90,10 @@ class Camiones(object):
         - MoverPeticion: mover una peticion, ya sea asignada o no, detrás de cualquier viaje de un camion (incluye a si mismo).
         - AsignarPeticion: asignar peticiones no asignadas a un camion
         """
-
-        
+        # definimos una variable para no tener que estar accediendo a self.params cada vez
+        max_pet = self.params.capacidad_maxima * self.params.max_viajes
+        max_viajes = self.params.max_viajes
+  
         # MoverPeticion
         # para cada peticion no asignada en cada camion, puede ir a cualquier camion cumpliendo restricciones
         for pet in self.lista_pet_no_asig:
@@ -94,11 +105,13 @@ class Camiones(object):
                     if viaje[2] == -1:
                         if pos_j + 2 < len(camion_j.viajes) and camion_j.viajes[pos_j + 2][2] == -1:
                             # -1 indica que la peticion no esta asignada a ningun camion
-                            yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 1)
+                            # miremos que no exceda la capacidad maxima de peticiones del camion destino
+                            if camion_j.num_pet < max_pet:
+                                yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 1)
 
-                        # si estamos en el último centro, miramos si podemos anadir viajes
+                        # si estamos en el ultimo centro, miramos si podemos anadir viajes
                         elif pos_j == len(camion_j.viajes) - 1:
-                            if camion_j.num_viajes < params.max_viajes:
+                            if camion_j.num_viajes < max_viajes and camion_j.num_pet < max_pet:
                                 yield MoverPeticion(pet, -1, cam_j, -1, pos_j + 1)
 
         # precaclular los indices de las peticiones por camion
@@ -118,10 +131,12 @@ class Camiones(object):
                             # la pos_j es un centro y pos_j + 2 tambien es centro, aplicamos el operador para insetar depués de pos_j y pos_j + 1
                             if viaje_j[2] == -1:
                                 if pos_j + 2 < len(camion_j.viajes) and camion_j.viajes[pos_j + 2][2] == -1:
-                                    yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
-                                # si estamos en el último centro, miramos si podemos anadir viajes
+                                    # miremos que no exceda la capacidad maxima de peticiones del camion destino
+                                    if camion_j.num_pet < max_pet:
+                                        yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
+                                # si estamos en el ultimo centro, miramos si podemos anadir viajes
                                 elif pos_j == len(camion_j.viajes) - 1:
-                                    if camion_j.num_viajes < params.max_viajes:
+                                    if camion_j.num_viajes < max_viajes and camion_j.num_pet < max_pet:
                                         yield MoverPeticion(viaje_i, cam_i, cam_j, pos_i, pos_j + 1)
         """              
         # MoverAntes
@@ -189,7 +204,7 @@ class Camiones(object):
                                     num_viaje = viaje_i + 1
                                     yield AsignarPeticion(pet, self.camiones.index(camion), num_viaje)
                         
-                            # si estamos en el último viaje, que es un centro, y aun nos puede hacer viajes, miraremos si lo podemos anadir al final
+                            # si estamos en el ultimo viaje, que es un centro, y aun nos puede hacer viajes, miraremos si lo podemos anadir al final
                             elif camion.num_viajes < self.params.max_viajes:
                                 num_viaje = len(camion.viajes)
                                 yield AsignarPeticion(pet, self.camiones.index(camion), num_viaje)
@@ -222,7 +237,7 @@ class Camiones(object):
                         pet_i = camion_i.viajes[ii]
                         pet_j = camion_j.viajes[jj]
                         
-                        # si no excede el maximo de km, generamos el operador
+                        # swap no anade viajes ni peticiones, solo intercambia
                         yield SwapPeticiones(pet_i, pet_j, ii, jj, cam_i, cam_j)
         """
         # Eliminar Peticiones
@@ -249,7 +264,7 @@ class Camiones(object):
                 dest = camiones_copy.camiones[cam_j]
 
                 if pos_j < len(dest.viajes):
-                    # cuando no se inserta después del último viaje
+                    # cuando no se inserta después del ultimo viaje
                     
                     # anadimos al camion destino
                     dest.viajes.insert(pos_j, pet)
@@ -269,8 +284,9 @@ class Camiones(object):
 
                 dest.recalcular_km()
 
-                if dest.km_recorridos > self.params.max_km:
+                if dest.km_recorridos > self.params.max_km or dest.num_pet > self.params.capacidad_maxima * self.params.max_viajes:
                     # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # o bien el camion excede las peticiones maximas
                     # no hará falta recalcular los km de todos los camiones
                     # de esta manera, la heuristica del sucesor sera -infinito y el hill climbing lo descartara
                     camiones_copy.coste_km = float('inf')
@@ -293,7 +309,7 @@ class Camiones(object):
                     org.viajes.pop(pos_i)
 
                 if pos_j < len(dest.viajes):
-                    # cuando no se inserta después del último viaje
+                    # cuando no se inserta después del ultimo viaje
 
                     # anadimos al camion destino
                     dest.viajes.insert(pos_j, pet)
@@ -306,8 +322,9 @@ class Camiones(object):
                 org.recalcular_km()
                 dest.recalcular_km()
 
-                if dest.km_recorridos > self.params.max_km or org.km_recorridos > self.params.max_km:
+                if dest.km_recorridos > self.params.max_km or org.km_recorridos > self.params.max_km or dest.num_pet > self.params.capacidad_maxima * self.params.max_viajes or org.num_pet > self.params.capacidad_maxima * self.params.max_viajes:
                     # si alguno de los camiones resultantes excede el maximo de km, forzamos un coste infinito
+                    # o bien alguno de los camiones excede las peticiones maximas
                     # no hará falta recalcular los km de todos los camiones
                     camiones_copy.coste_km = float('inf')
                     return camiones_copy
@@ -334,7 +351,7 @@ class Camiones(object):
                         pos_j -= 1
 
                 if pos_j < len(camion.viajes):
-                    # cuando no se inserta después del último viaje
+                    # cuando no se inserta después del ultimo viaje
                     # insertamos la peticion en la nueva posicion
                     camion.viajes.insert(pos_i, pet)
 
@@ -346,8 +363,9 @@ class Camiones(object):
                 # recalculamos los km_recorridos del camion
                 camion.recalcular_km()
 
-                if camion.km_recorridos > self.params.max_km:
+                if camion.km_recorridos > self.params.max_km or camion.num_pet > self.params.capacidad_maxima * self.params.max_viajes:
                     # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # o bien el camion excede las peticiones maximas
                     # no hará falta recalcular los km de todos los camiones
                     camiones_copy.coste_km = float('inf')
                     return camiones_copy
@@ -496,8 +514,9 @@ class Camiones(object):
                 # recompute km and cost for the affected camion
                 dest.recalcular_km()
 
-                if dest.km_recorridos > self.params.max_km:
+                if dest.km_recorridos > self.params.max_km or dest.num_pet > self.params.capacidad_maxima * self.params.max_viajes:
                     # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                    # o bien el camion excede las peticiones maximas
                     # no hará falta recalcular los km de todos los camiones
                     camiones_copy.coste_km = float('inf')
                     return camiones_copy
@@ -525,8 +544,9 @@ class Camiones(object):
                     org.recalcular_km()
                     dest.recalcular_km()
 
-                    if org.km_recorridos > self.params.max_km or dest.km_recorridos > self.params.max_km:
+                    if org.km_recorridos > self.params.max_km or dest.km_recorridos > self.params.max_km or org.num_pet > self.params.capacidad_maxima * self.params.max_viajes or dest.num_pet > self.params.capacidad_maxima * self.params.max_viajes:
                         # si alguno de los camiones resultantes excede el maximo de km, forzamos un coste infinito
+                        # o bien alguno de los camiones excede las peticiones maximas
                         # no hará falta recalcular los km de todos los camiones
                         camiones_copy.coste_km = float('inf')
                         return camiones_copy
@@ -546,8 +566,9 @@ class Camiones(object):
                     # las ganancias y el coste por peticiones no servidas no cambian al intercambiar una peticion entre camiones
                     camion.recalcular_km()
 
-                    if camion.km_recorridos > self.params.max_km:
+                    if camion.km_recorridos > self.params.max_km or camion.num_pet > self.params.capacidad_maxima * self.params.max_viajes:
                         # si el camion resultante excede el maximo de km, forzamos un coste infinito
+                        # o bien el camion excede las peticiones maximas
                         # no hará falta recalcular los km de todos los camiones
                         camiones_copy.coste_km = float('inf')
                         return camiones_copy
@@ -640,11 +661,17 @@ class Camiones(object):
         for camion in self.camiones:
             if camion.km_recorridos <= self.params.max_km and camion.num_viajes <= self.params.max_viajes:
                 total_coste += camion.km_recorridos * self.params.coste_km
+                if camion.num_pet > 10:
+                    total_coste = float('inf')
+                    break
             else:
                 total_coste = float('inf')
                 break
         self.coste_km = total_coste
         return self.coste_km
+    
+    """
+    Funciones que se usaban al principio de la implementacion, pero que ahora no se usan
 
     # el coste por km se modifica cuando se altera la lista de viajes de un camion, 
     # ya sea anadiendo, eliminando o moviendo peticiones. Solo necesitamos saber el camion modificado
@@ -658,7 +685,7 @@ class Camiones(object):
         # subtract the old cost(s) and add the new cost(s)
         self.coste_km = self.coste_km - coste_cam_ant + cost_cam_nue
         return self.coste_km
-
+    """
     # coste de las peticiones no servidas en la solucion inicial
     # definiremos como coste a las perdidas por dejar una peticion sin servir durante un dia más
     # necesitamos saber que peticiones se han asignado y cuales no
@@ -707,6 +734,15 @@ class Camiones(object):
         self.lista_pet_no_asig = lista_no_asig
         return lista_no_asig
     
+    # funcion para indicar num de peticiones servidas
+    # solo es para ver los resultados en los experimentos
+    def num_pet_servidas(self) -> int:
+        num_pet_servidas = 0
+        for camion in self.camiones:
+            for peticion in camion.viajes:
+                if peticion[2] != -1:
+                    num_pet_servidas += 1
+        return num_pet_servidas
 
 ####################### Soluciones iniciales
 def generar_sol_inicial_vacia(params: ProblemParameters) -> Camiones:
