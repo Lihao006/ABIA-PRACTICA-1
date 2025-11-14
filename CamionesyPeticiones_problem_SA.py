@@ -2,7 +2,7 @@ from aima.search import Problem
 from typing import Generator
 
 # Usamos el estado específico para SA que ofrece random_action()
-from Camion_state_SA import Camiones
+from Camion_state import Camiones
 from Camion_operators import CamionOperators
 
 class CamionesyPeticionesSA(Problem):

@@ -4,7 +4,7 @@ from CamionesyPeticiones_problem import CamionesyPeticiones
 from CamionesyPeticiones_problem_SA import CamionesyPeticionesSA
 from Camion_parameters import ProblemParameters
 from Camion_operators import *
-from Camion_state_SA import *
+from Camion_state import *
 
 
 def run_experiments_for_initial(name: str, initial_state):
