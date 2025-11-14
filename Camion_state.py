@@ -239,14 +239,14 @@ class Camiones(object):
                         
                         # swap no anade viajes ni peticiones, solo intercambia
                         yield SwapPeticiones(pet_i, pet_j, ii, jj, cam_i, cam_j)
-        """
+        
         # EliminarPeticiones
         for cam_i, camion in enumerate(self.camiones):
             for pet_i, peticion in enumerate(camion.viajes):
                 # tiene que ser una peticion asignada
                 if peticion[2] != -1:
                     yield EliminarPeticiones(pet_i, peticion, cam_i)
-        """
+        
     
     def random_action(self) -> Optional[CamionOperators]:
         # Selecciona al azar un operador y parámetros válidos, devolviendo exactamente una acción
@@ -722,7 +722,7 @@ class Camiones(object):
                         # no hará falta recalcular los km de todos los camiones
                         camiones_copy.coste_km = float('inf')
                         return camiones_copy
-        """
+        
         # EliminarPeticiones
         if isinstance(action, EliminarPeticiones):
             pet_i = action.pet_i
@@ -757,7 +757,7 @@ class Camiones(object):
             camion.recalcular_km()
             
             # eliminar viajes no superará el max de km
-            """
+            
         camiones_copy.coste_km_rec()
         camiones_copy.pasos += 1
         return camiones_copy
@@ -812,13 +812,15 @@ class Camiones(object):
         total_coste = 0
         for camion in self.camiones:
             if camion.km_recorridos <= self.params.max_km and camion.num_viajes <= self.params.max_viajes:
-                total_coste += camion.km_recorridos * self.params.coste_km
+                total_coste += camion.km_recorridos
                 if camion.num_pet > 10:
                     total_coste = float('inf')
                     break
             else:
                 total_coste = float('inf')
                 break
+        # solo multiplicamos una vez al final
+        total_coste = total_coste * self.params.coste_km
         self.coste_km = total_coste
         return self.coste_km
     
