@@ -891,9 +891,7 @@ class Camiones(object):
     def num_pet_servidas(self) -> int:
         num_pet_servidas = 0
         for camion in self.camiones:
-            for peticion in camion.viajes:
-                if peticion[2] != -1:
-                    num_pet_servidas += 1
+            num_pet_servidas += camion.num_pet
         return num_pet_servidas
 
 ####################### Soluciones iniciales
