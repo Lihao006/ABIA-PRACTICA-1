@@ -2,7 +2,7 @@ from abia_Gasolina import *
 from Camion_parameters import ProblemParameters
 from Camion_operators import CamionOperators, MoverPeticion, AsignarPeticion, SwapPeticiones, EliminarPeticiones, MoverAntes, MoverDespues
 
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 
 params = ProblemParameters()
@@ -240,13 +240,159 @@ class Camiones(object):
                         # swap no anade viajes ni peticiones, solo intercambia
                         yield SwapPeticiones(pet_i, pet_j, ii, jj, cam_i, cam_j)
         """
-        # Eliminar Peticiones
-        # tiene que ser una peticion asignada
+        # EliminarPeticiones
         for cam_i, camion in enumerate(self.camiones):
-            for pet_i in range(len(camion.viajes)):
-                if camion.viajes[pet_i][2] != -1:
-                    yield EliminarPeticiones(camion.viajes[pet_i], cam_i)
+            for pet_i, peticion in enumerate(camion.viajes):
+                # tiene que ser una peticion asignada
+                if peticion[2] != -1:
+                    yield EliminarPeticiones(pet_i, peticion, cam_i)
         """
+    
+    def random_action(self) -> Optional[CamionOperators]:
+        # Selecciona al azar un operador y parámetros válidos, devolviendo exactamente una acción
+        if not self.camiones:
+            return None
+
+        ops = ['MoverPeticion', 'SwapPeticiones']
+        random.shuffle(ops)
+
+        # Limitar intentos por operador para evitar bucles largos en instancias sin movimientos válidos
+        max_por_op = 30
+
+        for op in ops:
+            # MoverPeticion: desde no asignadas o desde asignadas a otra posición/camión
+            if op == 'MoverPeticion':
+                for _ in range(max_por_op):
+                    from_unassigned = bool(self.lista_pet_no_asig) and random.random() < 0.5
+                    if from_unassigned:
+                        pet = random.choice(self.lista_pet_no_asig)
+                        cam_j = random.randrange(len(self.camiones))
+                        camion_j = self.camiones[cam_j]
+                        # escoger un centro destino válido
+                        center_indices = [idx for idx, v in enumerate(camion_j.viajes) if v[2] == -1]
+                        if not center_indices:
+                            continue
+                        idx_c = random.choice(center_indices)
+                        # dos casos válidos: entre centros o al final si hay viajes disponibles
+                        if idx_c + 2 < len(camion_j.viajes) and camion_j.viajes[idx_c + 2][2] == -1:
+                            return MoverPeticion(pet, -1, cam_j, -1, idx_c + 1)
+                        if idx_c == len(camion_j.viajes) - 1 and camion_j.num_viajes < self.params.max_viajes:
+                            return MoverPeticion(pet, -1, cam_j, -1, idx_c + 1)
+                        continue
+                    # desde asignadas
+                    # elegir camión y petición
+                    cam_i = random.randrange(len(self.camiones))
+                    camion_i = self.camiones[cam_i]
+                    pet_indices = [idx for idx, v in enumerate(camion_i.viajes) if v[2] != -1]
+                    if not pet_indices:
+                        continue
+                    pos_i = random.choice(pet_indices)
+                    pet = camion_i.viajes[pos_i]
+                    # elegir destino
+                    cam_j = random.randrange(len(self.camiones))
+                    camion_j = self.camiones[cam_j]
+                    center_indices = [idx for idx, v in enumerate(camion_j.viajes) if v[2] == -1]
+                    if not center_indices:
+                        continue
+                    idx_c = random.choice(center_indices)
+                    if idx_c + 2 < len(camion_j.viajes) and camion_j.viajes[idx_c + 2][2] == -1:
+                        return MoverPeticion(pet, cam_i, cam_j, pos_i, idx_c + 1)
+                    if idx_c == len(camion_j.viajes) - 1 and camion_j.num_viajes < self.params.max_viajes:
+                        return MoverPeticion(pet, cam_i, cam_j, pos_i, idx_c + 1)
+                # si no se encontró válido, probar otro operador
+
+            elif op == 'MoverAntes':
+                for _ in range(max_por_op):
+                    cam_i = random.randrange(len(self.camiones))
+                    camion = self.camiones[cam_i]
+                    if len(camion.viajes) < 4:
+                        continue
+                    # candidatos con patrón C P C (mirando hacia atrás) -> mover P detrás del centro anterior
+                    candidates = [i for i in range(2, len(camion.viajes) - 1)
+                                  if camion.viajes[i][2] != -1 and camion.viajes[i - 1][2] == -1 and camion.viajes[i - 3][2] == -1]
+                    if not candidates:
+                        continue
+                    pos_i = random.choice(candidates)
+                    pet = camion.viajes[pos_i]
+                    pos_j = pos_i - 2
+                    return MoverAntes(cam_i, pet, pos_i, pos_j)
+
+            elif op == 'MoverDespues':
+                for _ in range(max_por_op):
+                    cam_i = random.randrange(len(self.camiones))
+                    camion = self.camiones[cam_i]
+                    if len(camion.viajes) < 3:
+                        continue
+                    i = random.randrange(1, len(camion.viajes) - 1)
+                    if camion.viajes[i][2] == -1:
+                        continue
+                    # caso entre centros: C P C ... C -> mover P delante del siguiente P (i+2)
+                    if i + 3 < len(camion.viajes) and camion.viajes[i + 1][2] == -1 and camion.viajes[i + 3][2] == -1:
+                        return MoverDespues(cam_i, camion.viajes[i], i, i + 2)
+                    # caso final: última petición del viaje y aún puede añadir viaje
+                    if camion.viajes[i][2] != -1 and camion.viajes[i + 1][2] == -1 and camion.num_viajes < self.params.max_viajes:
+                        if camion.viajes[i - 1][2] != -1:
+                            return MoverDespues(cam_i, camion.viajes[i], i, len(camion.viajes))
+                
+            elif op == 'AsignarPeticion':
+                for _ in range(max_por_op):
+                    if not self.lista_pet_no_asig:
+                        break
+                    pet = random.choice(self.lista_pet_no_asig)
+                    cam_i = random.randrange(len(self.camiones))
+                    camion = self.camiones[cam_i]
+                    if camion.num_viajes > self.params.max_viajes or camion.km_recorridos >= self.params.max_km:
+                        continue
+                    center_indices = [idx for idx, v in enumerate(camion.viajes) if v[2] == -1]
+                    if not center_indices:
+                        continue
+                    idx_c = random.choice(center_indices)
+                    if idx_c + 2 < len(camion.viajes) and camion.viajes[idx_c + 2][2] == -1:
+                        return AsignarPeticion(pet, cam_i, idx_c + 1)
+                    if idx_c == len(camion.viajes) - 1 and camion.num_viajes < self.params.max_viajes:
+                        return AsignarPeticion(pet, cam_i, len(camion.viajes))
+
+            elif op == 'SwapPeticiones':
+                for _ in range(max_por_op):
+                    # 50% no asignada vs asignada, 50% asignada vs asignada
+                    if self.lista_pet_no_asig and random.random() < 0.5:
+                        pet_no = random.choice(self.lista_pet_no_asig)
+                        cam_j = random.randrange(len(self.camiones))
+                        camion_j = self.camiones[cam_j]
+                        pos_candidates = [idx for idx, v in enumerate(camion_j.viajes) if v[2] != -1]
+                        if not pos_candidates:
+                            continue
+                        pos_j = random.choice(pos_candidates)
+                        pet_asig = camion_j.viajes[pos_j]
+                        return SwapPeticiones(pet_no, pet_asig, -1, pos_j, -1, cam_j)
+                    # asignada vs asignada
+                    cam_i = random.randrange(len(self.camiones))
+                    cam_j = random.randrange(len(self.camiones))
+                    camion_i = self.camiones[cam_i]
+                    camion_j = self.camiones[cam_j]
+                    pos_i_candidates = [idx for idx, v in enumerate(camion_i.viajes) if v[2] != -1]
+                    pos_j_candidates = [idx for idx, v in enumerate(camion_j.viajes) if v[2] != -1]
+                    if not pos_i_candidates or not pos_j_candidates:
+                        continue
+                    pos_i = random.choice(pos_i_candidates)
+                    pos_j = random.choice(pos_j_candidates)
+                    if cam_i == cam_j and pos_i == pos_j:
+                        continue
+                    return SwapPeticiones(camion_i.viajes[pos_i], camion_j.viajes[pos_j], pos_i, pos_j, cam_i, cam_j)
+
+            elif op == 'EliminarPeticiones':
+                for _ in range(max_por_op):
+                    cam_i = random.randrange(len(self.camiones))
+                    camion = self.camiones[cam_i]
+                    pos_candidates = [idx for idx, v in enumerate(camion.viajes) if v[2] != -1]
+                    if not pos_candidates:
+                        continue
+                    pos_i = random.choice(pos_candidates)
+                    return EliminarPeticiones(pos_i, camion.viajes[pos_i], cam_i)
+
+        return None
+    
+    
     def apply_action(self, action: CamionOperators) -> 'Camiones':
         
         camiones_copy = self.copy()
@@ -579,21 +725,24 @@ class Camiones(object):
         """
         # EliminarPeticiones
         if isinstance(action, EliminarPeticiones):
-            pet = action.pet_i
+            pet_i = action.pet_i
+            pet = action.pet
             cam_i = action.cam_i
             camion = camiones_copy.camiones[cam_i]
 
             # eliminamos la peticion del camion
             for viaje_i, viaje in enumerate(camion.viajes):
-                if viaje == pet:
-                    if camion.viajes[viaje_i -1][2] == - 1 and camion.viajes[viaje_i +1][2] == -1:
-                        #miramos si hay que quitar centros redundantes y recalculamos num_viajes
-                        # si la peticion esta entre dos centros, eliminamos tambien uno de los centros para evitar redundancia
-                        camion.viajes.remove(camion.viajes[viaje_i -1])
-                        # el indice se reduce en 1 tras eliminar el centro anterior
-                        camion.viajes.remove(camion.viajes[viaje_i -1])
-                        camion.num_viajes -= 1
-                        
+                # tiene que coincidir la peticion y nos aseguramos de que no sea un centro
+                if viaje == pet and viaje_i == pet_i and viaje[2] != -1:
+                    if camion.viajes[viaje_i -1][2] == - 1:
+                        # comprobamos si existe viaje_i + 1
+                        if viaje_i + 1 < len(camion.viajes) and camion.viajes[viaje_i +1][2] == -1:
+                            #miramos si hay que quitar centros redundantes y recalculamos num_viajes
+                            # si la peticion esta entre dos centros, eliminamos tambien uno de los centros para evitar redundancia
+                            camion.viajes.remove(camion.viajes[viaje_i -1])
+                            # el indice se reduce en 1 tras eliminar el centro anterior
+                            camion.viajes.remove(camion.viajes[viaje_i -1])
+                            camion.num_viajes -= 1   
                     else:
                         # si no, simplemente eliminamos la peticion
                         camion.viajes.remove(camion.viajes[viaje_i])
@@ -605,7 +754,6 @@ class Camiones(object):
             # modificamos los valores de costes y ganancias de la nueva solucion
             camiones_copy.mod_ganancias(pet, "eliminar")
             camiones_copy.mod_coste_petno(pet, "eliminar")
-
             camion.recalcular_km()
             
             # eliminar viajes no superará el max de km
