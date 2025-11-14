@@ -65,10 +65,9 @@ class Camiones(object):
         # Si multiplicidad > 1, varios camiones estarán en la misma posicion inicial
         if len(self.camiones) == 0:
             # Crear una instancia separada de Camion por cada multiplicidad.
-            for c in range(len(centros.centros)):
-                for _ in range(params.multiplicidad):
-                    camion = Camion([(centros.centros[c].cx, centros.centros[c].cy, -1)])
-                    self.camiones.append(camion)
+            for centro in centros.centros:
+                camion = Camion([(centro.cx, centro.cy, -1)])
+                self.camiones.append(camion)
 
     def copy(self) -> 'Camiones':
         # Afegim el copy per cada llista de camions
@@ -81,7 +80,7 @@ class Camiones(object):
         if not self.camiones:
             return None
 
-        ops = ['MoverPeticion', 'MoverAntes', 'MoverDespues', 'AsignarPeticion', 'SwapPeticiones', 'EliminarPeticiones']
+        ops = ['MoverPeticion', 'SwapPeticiones']
         random.shuffle(ops)
 
         # Limitar intentos por operador para evitar bucles largos en instancias sin movimientos válidos
